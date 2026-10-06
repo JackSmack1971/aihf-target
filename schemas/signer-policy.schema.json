@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SignerPolicy",
+  "description": "V1.1 section 13. allowed_request_types is exactly the four canonical request types; any other value is rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_version",
+    "blueprint_ref",
+    "allowed_request_types",
+    "denied_actions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "blueprint_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "allowed_request_types": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "SignOrder",
+          "SignCancelByCloid",
+          "SignCancelByOid",
+          "SignScheduleCancel"
+        ]
+      }
+    },
+    "denied_actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  }
+}

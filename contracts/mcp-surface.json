@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "blueprint_ref": "V1.1 section 9",
+  "note": "Closed per-server tool allowlists for the seven model-facing MCP services. The surface, forbidden list, operator-controls block and policy flags are pinned in src/contracts/mcp-surface-checker.mjs. Servers whose tools section 9 does not enumerate keep an empty allowlist until a reviewed decision adds them (DOCUMENTATION_GAP, fail closed). coinvest-intelligence-mcp tool names are PROVISIONAL: section 9 lists operations, not names, and requires live schema verification. No MCP server is implemented in Phase 0.",
+  "servers": [
+    {
+      "id": "fund-state-mcp",
+      "mode": "read_only",
+      "enabled_tools": [
+        "get_fund_state",
+        "get_portfolio_snapshot",
+        "get_risk_limits",
+        "get_active_strategies",
+        "get_trade_intent",
+        "get_execution_status",
+        "get_risk_status",
+        "get_data_health",
+        "get_activation_manifest"
+      ]
+    },
+    {
+      "id": "intent-gateway-mcp",
+      "mode": "narrow_write",
+      "enabled_tools": [
+        "submit_trade_intent",
+        "expire_trade_intent",
+        "request_reduce_exposure"
+      ]
+    },
+    {
+      "id": "coinvest-intelligence-mcp",
+      "mode": "read_only",
+      "enabled_tools": [
+        "analyze_market",
+        "compare_markets",
+        "get_positioning_pulse",
+        "discover_markets",
+        "get_news_catalysts",
+        "get_technical_indicators",
+        "get_order_book_depth",
+        "get_market_history"
+      ]
+    },
+    {
+      "id": "fin-data-mcp",
+      "mode": "read_only",
+      "enabled_tools": []
+    },
+    {
+      "id": "massive-mcp",
+      "mode": "read_only",
+      "enabled_tools": []
+    },
+    {
+      "id": "hyperliquid-info-mcp",
+      "mode": "read_only",
+      "enabled_tools": []
+    },
+    {
+      "id": "openrouter-committee-mcp",
+      "mode": "advisory_read_only",
+      "enabled_tools": []
+    }
+  ],
+  "forbidden_tools": [
+    "arm_mainnet",
+    "read_secret",
+    "change_risk_limit",
+    "approve_agent",
+    "revoke_agent",
+    "create_vault",
+    "create_subaccount",
+    "withdraw",
+    "transfer",
+    "sign",
+    "raw_exchange_action",
+    "place_order",
+    "modify_order",
+    "cancel_order",
+    "arm",
+    "disarm",
+    "halt",
+    "flatten",
+    "activate_release",
+    "activate_policy",
+    "rotate_agent",
+    "custody_action"
+  ],
+  "operator_controls": {
+    "surface": "fundctl",
+    "mcp_equivalent_allowed": false,
+    "commands": [
+      "status",
+      "arm",
+      "disarm",
+      "halt",
+      "flatten",
+      "activate-release",
+      "activate-policy",
+      "rotate-agent"
+    ]
+  },
+  "policy": {
+    "arbitrary_user_added_servers": false,
+    "unreviewed_plugin_servers": false,
+    "direct_coinvest_upstream_registration": false,
+    "remote_schema_expansion_auto_expands_authority": false,
+    "unknown_upstream_tool_default": "deny"
+  }
+}

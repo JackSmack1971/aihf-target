@@ -1,0 +1,717 @@
+{
+  "schema_version": 1,
+  "note": "Each entry needs an existing contract file and a denial_test id appearing literally in a test name under tests/. enforcement=enforced: the test feeds a violating artifact to a deterministic Phase-0 checker/validator/state machine/scanner and asserts rejection (enforced_in_phase 0). No entry may be declared-only. runtime_enforced_in_phase (optional, >=1) names the later phase whose runtime adds live enforcement of the same capability; it never replaces the Phase-0 denial.",
+  "capabilities": [
+    {
+      "id": "SIGNER_WITHDRAW3",
+      "description": "signerd has no code path for withdraw3",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-WITHDRAW3",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_USDSEND",
+      "description": "signerd has no code path for usdSend",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-USDSEND",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_SPOTSEND",
+      "description": "signerd has no code path for spotSend",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-SPOTSEND",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_SENDASSET",
+      "description": "signerd has no code path for sendAsset",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-SENDASSET",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_AGENTSENDASSET",
+      "description": "signerd has no code path for agentSendAsset",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-AGENTSENDASSET",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_VAULTTRANSFER",
+      "description": "signerd has no code path for vaultTransfer",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-VAULTTRANSFER",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_SUBACCOUNT_TRANSFER",
+      "description": "signerd has no code path for subaccount transfers",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-SUBACCOUNT-TRANSFER",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_AGENT_APPROVAL_REVOCATION",
+      "description": "signerd has no code path for agent approval/revocation",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-AGENT-APPROVAL-REVOCATION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_VAULT_CREATE_MODIFY",
+      "description": "signerd has no code path for vault creation/modification",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-VAULT-CREATE-MODIFY",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_SUBACCOUNT_CREATE_MODIFY",
+      "description": "signerd has no code path for subaccount creation/modification",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-SUBACCOUNT-CREATE-MODIFY",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_STAKING",
+      "description": "signerd has no code path for staking actions",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-STAKING",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_BUILDER_FEE_APPROVAL",
+      "description": "signerd has no code path for builder-fee approval",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-BUILDER-FEE-APPROVAL",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_RAW_ARBITRARY_ACTION",
+      "description": "signerd has no raw arbitrary action signing",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-RAW-ARBITRARY-ACTION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_LEVERAGE_ACCOUNT_MODE",
+      "description": "signerd has no runtime leverage/account-mode change path",
+      "blueprint_ref": "sections 13, 16",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-LEVERAGE-ACCOUNT-MODE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_USER_SIGNED_EIP712",
+      "description": "signerd has no arbitrary user-signed EIP-712 action path",
+      "blueprint_ref": "section 13",
+      "contract": "config/signer-policy.json",
+      "denial_test": "DENY-SIGNER-USER-SIGNED-EIP712",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_NON_ALLOWLISTED_REQUEST",
+      "description": "Signer policy may allow only SignOrder, SignCancelByCloid, SignCancelByOid, SignScheduleCancel",
+      "blueprint_ref": "section 13",
+      "contract": "schemas/signer-policy.schema.json",
+      "denial_test": "DENY-SIGNER-NON-ALLOWLISTED-REQUEST",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "GENERIC_SIGNING_ENTRYPOINT",
+      "description": "No generic/raw signing or exchange-action entrypoint exists in src/",
+      "blueprint_ref": "sections 2, 13, 17 inv. 6",
+      "contract": "schemas/signer-policy.schema.json",
+      "denial_test": "DENY-GENERIC-SIGNING-ENTRYPOINT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "INTENT_LLM_EXCHANGE_FIELDS",
+      "description": "TradeIntent cannot carry asset index, tick/lot, nonce, cloid, raw action, final size or signature",
+      "blueprint_ref": "section 22",
+      "contract": "schemas/trade-intent.schema.json",
+      "denial_test": "DENY-INTENT-LLM-EXCHANGE-FIELDS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "INTENT_UNKNOWN_FIELD",
+      "description": "TradeIntent rejects unknown fields at every level",
+      "blueprint_ref": "sections 3, 22",
+      "contract": "schemas/trade-intent.schema.json",
+      "denial_test": "DENY-INTENT-UNKNOWN-FIELD",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_UNBOUNDED",
+      "description": "Permit missing any bound/binding field is rejected",
+      "blueprint_ref": "section 12, 17 inv. 2-3",
+      "contract": "schemas/execution-permit.schema.json",
+      "denial_test": "DENY-PERMIT-UNBOUNDED",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_MARKET_ORDER",
+      "description": "Permit cannot allow market order types",
+      "blueprint_ref": "sections 12, 17 inv. 39",
+      "contract": "schemas/execution-permit.schema.json",
+      "denial_test": "DENY-PERMIT-MARKET-ORDER",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_UNKNOWN_FIELD",
+      "description": "Permit rejects unknown fields",
+      "blueprint_ref": "section 12",
+      "contract": "schemas/execution-permit.schema.json",
+      "denial_test": "DENY-PERMIT-UNKNOWN-FIELD",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_WITHDRAWALS",
+      "description": "Risk policy cannot enable withdrawals",
+      "blueprint_ref": "sections 2, 18",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-WITHDRAWALS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_TRANSFERS",
+      "description": "Risk policy cannot enable transfers",
+      "blueprint_ref": "sections 2, 18",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-TRANSFERS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_THIRD_PARTY_CAPITAL",
+      "description": "Risk policy cannot enable third-party capital",
+      "blueprint_ref": "section 2",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-THIRD-PARTY-CAPITAL",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_MARKET_ENTRY_ORDERS",
+      "description": "Risk policy cannot allow market entry orders",
+      "blueprint_ref": "sections 17 inv. 39, 18",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-MARKET-ENTRY-ORDERS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_UNLISTED_ASSETS",
+      "description": "Risk policy cannot allow unlisted assets",
+      "blueprint_ref": "section 18",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-UNLISTED-ASSETS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_UNSET_LIMITS",
+      "description": "A risk policy with unset (null) or missing numeric limits cannot be activated",
+      "blueprint_ref": "section 18",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-UNSET-LIMITS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "POLICY_EMERGENCY_PROTECTION_DISABLED",
+      "description": "Risk policy cannot disable protective emergency orders",
+      "blueprint_ref": "sections 17 inv. 40, 18",
+      "contract": "schemas/risk-policy.schema.json",
+      "denial_test": "DENY-POLICY-EMERGENCY-PROTECTION-DISABLED",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "RUNTIME_EXPOSURE_OUTSIDE_ARMED",
+      "description": "Exposure increase is denied in every runtime state except ARMED",
+      "blueprint_ref": "section 17 inv. 8",
+      "contract": "contracts/runtime-state-machine.json",
+      "denial_test": "DENY-RUNTIME-EXPOSURE-OUTSIDE-ARMED",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "RUNTIME_SAFE_HALT_TO_ARMED",
+      "description": "SAFE_HALT -> ARMED is denied",
+      "blueprint_ref": "section 17 inv. 9",
+      "contract": "contracts/runtime-state-machine.json",
+      "denial_test": "DENY-RUNTIME-SAFE-HALT-TO-ARMED",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "INTENT_SKIP_AUTHORIZATION",
+      "description": "PERMITTED/execution states are unreachable except via AUTHORIZATION_PENDING",
+      "blueprint_ref": "sections 12, 21",
+      "contract": "contracts/trade-intent-state-machine.json",
+      "denial_test": "DENY-INTENT-SKIP-AUTHORIZATION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "INTENT_TERMINAL_REVIVAL",
+      "description": "Terminal TradeIntent states have no outgoing transitions; REJECTED cannot reach PERMITTED",
+      "blueprint_ref": "section 21",
+      "contract": "contracts/trade-intent-state-machine.json",
+      "denial_test": "DENY-INTENT-TERMINAL-REVIVAL",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "ZONE_CODEX_TRADERD_KEY",
+      "description": "Codex plane (zone 1) and traderd (zone 4) hold no trading key or raw exchange write",
+      "blueprint_ref": "section 3",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-ZONE-CODEX-TRADERD-KEY",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "ZONE_SIGNING_CODEX_MCP",
+      "description": "Signing plane (zone 5) has no Codex or MCP",
+      "blueprint_ref": "section 3",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-ZONE-SIGNING-CODEX-MCP",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "OPS_MODE_NO_SIGNER_NO_WRITES",
+      "description": "fund-dev has no signer/production IPC/mainnet secret; fund-ops has no signer, repo writes or direct exchange writes",
+      "blueprint_ref": "section 5",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-OPS-MODE-CAPABILITIES",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "GENERIC_EXCHANGE_ENDPOINT_TO_CODEX",
+      "description": "No generic exchange endpoint exposed to Codex",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-GENERIC-EXCHANGE-ENDPOINT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "GENERIC_SIGNER_TO_TRADERD_OR_MCP",
+      "description": "No generic signer exposed to traderd or MCP",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-GENERIC-SIGNER",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "THIRD_PARTY_CAPITAL",
+      "description": "No third-party capital",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-THIRD-PARTY-CAPITAL",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 7
+    },
+    {
+      "id": "API_WALLET_MANAGEMENT",
+      "description": "No autonomous API-wallet creation/approval/replacement/revocation",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-API-WALLET-MANAGEMENT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "CUSTODY_CONFIG_CHANGE",
+      "description": "No autonomous custody configuration change",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-CUSTODY-CONFIG-CHANGE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "RUNTIME_SOURCE_MUTATION",
+      "description": "No runtime source-code mutation in live operations plane",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-RUNTIME-SOURCE-MUTATION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "AUTONOMOUS_DEPLOYMENT",
+      "description": "No autonomous production deployment",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-AUTONOMOUS-DEPLOYMENT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "SELF_PROMOTION",
+      "description": "No self-promotion of strategies into capital",
+      "blueprint_ref": "section 2",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-SELF-PROMOTION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 6
+    },
+    {
+      "id": "COINVEST_LIVE_EXECUTION",
+      "description": "Co-Invest live execution is not part of the production path",
+      "blueprint_ref": "sections 5, 17 inv. 48",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-GLOBAL-COINVEST-LIVE-EXECUTION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 2
+    },
+    {
+      "id": "AGENTS_OVERRIDE_FILE",
+      "description": "AGENTS.override.md must not exist anywhere in the repository",
+      "blueprint_ref": "docs-evidence D2",
+      "contract": "AGENTS.md",
+      "denial_test": "DENY-REPO-AGENTS-OVERRIDE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "EARLY_CODEX_CONFIG",
+      "description": "No .codex/ configuration before Phase 1",
+      "blueprint_ref": "section 33",
+      "contract": "AGENTS.md",
+      "denial_test": "DENY-REPO-EARLY-CODEX-CONFIG",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "BUILDER_CONFIG_IN_TARGET",
+      "description": "No .claude/ builder configuration in the target",
+      "blueprint_ref": "builder target-boundary",
+      "contract": "AGENTS.md",
+      "denial_test": "DENY-REPO-CLAUDE-CONFIG",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SECRET_FILES",
+      "description": "No key/secret/env files in the repository",
+      "blueprint_ref": "sections 13, 32",
+      "contract": ".gitignore",
+      "denial_test": "DENY-REPO-SECRET-FILES",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "AGENTS_TRUNCATION",
+      "description": "AGENTS.md must fit the default 32 KiB Codex project-doc limit",
+      "blueprint_ref": "docs-evidence D3",
+      "contract": "AGENTS.md",
+      "denial_test": "DENY-REPO-AGENTS-TRUNCATION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SCHEMA_VALIDATOR_FAIL_OPEN",
+      "description": "The schema validator throws on unknown keywords instead of ignoring them",
+      "blueprint_ref": "fail-closed rule",
+      "contract": "src/contracts/schema-validator.mjs",
+      "denial_test": "DENY-VALIDATOR-UNKNOWN-KEYWORD",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "THREAT_WITHOUT_SAFE_STATE",
+      "description": "Every section 31 threat maps to an enumerated deterministic safe state",
+      "blueprint_ref": "section 31",
+      "contract": "contracts/threat-model.json",
+      "denial_test": "DENY-THREAT-WITHOUT-SAFE-STATE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SIGNER_DENY_LIST_INCOMPLETE",
+      "description": "Signer deny list must contain every pinned required denial",
+      "blueprint_ref": "section 13",
+      "contract": "contracts/signer-denied-actions.json",
+      "denial_test": "DENY-SIGNER-DENY-LIST-INCOMPLETE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_PRICE_BOUND",
+      "description": "Permit must carry exactly one closed price bound (limit_cap+max_price or limit_floor+min_price)",
+      "blueprint_ref": "section 12",
+      "contract": "schemas/execution-permit.schema.json",
+      "denial_test": "DENY-PERMIT-PRICE-BOUND",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_INCONSISTENT",
+      "description": "Permit side/price kind and effect/reduce_only must be consistent",
+      "blueprint_ref": "sections 12, 16",
+      "contract": "src/contracts/permit-consistency.mjs",
+      "denial_test": "DENY-PERMIT-INCONSISTENT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_WINDOW",
+      "description": "Permit needs a valid issued_at/expires_at window within a REQUIRED TTL ceiling",
+      "blueprint_ref": "section 12",
+      "contract": "src/contracts/permit-consistency.mjs",
+      "denial_test": "DENY-PERMIT-WINDOW",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "PERMIT_TTL_UNSET",
+      "description": "An unset permit TTL ceiling fails closed",
+      "blueprint_ref": "sections 12, 18",
+      "contract": "config/permit-policy.template.json",
+      "denial_test": "DENY-PERMIT-TTL-UNSET",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "INPUT_SIZE_BOUNDS",
+      "description": "LLM-supplied and permit string/array fields are size-bounded",
+      "blueprint_ref": "sections 3, 22",
+      "contract": "schemas/trade-intent.schema.json",
+      "denial_test": "DENY-INPUT-SIZE-BOUNDS",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SRC_UNALLOWED_IMPORT",
+      "description": "src/ may not use dynamic import, require, or imports outside a per-file allowlist",
+      "blueprint_ref": "sections 13, 26",
+      "contract": "src/contracts/schema-validator.mjs",
+      "denial_test": "DENY-SRC-UNALLOWED-IMPORT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "RUNTIME_HUMAN_GATE",
+      "description": "Human-gated runtime transitions are denied without explicit human authorization",
+      "blueprint_ref": "sections 17 inv. 9, 20",
+      "contract": "contracts/runtime-state-machine.json",
+      "denial_test": "DENY-RUNTIME-HUMAN-GATE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "SAFE_STATE_UNMAPPED",
+      "description": "Every threat safe state maps to defined runtime states, none permitting exposure increase",
+      "blueprint_ref": "section 31",
+      "contract": "contracts/threat-model.json",
+      "denial_test": "DENY-SAFE-STATE-UNMAPPED",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "ZONE_SIGNING_ARBITRARY_SHELL",
+      "description": "Signing plane (zone 5) has no arbitrary shell",
+      "blueprint_ref": "section 3",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-ZONE-SIGNING-ARBITRARY-SHELL",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "ZONE_SIGNING_GENERAL_NETWORK",
+      "description": "Signing plane (zone 5) requires no general outbound network",
+      "blueprint_ref": "section 3",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-ZONE-SIGNING-GENERAL-NETWORK",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "ZONE_SIGNING_FILESYSTEM_ESCAPE",
+      "description": "Signing plane (zone 5) has no filesystem access outside its own state/secret boundary",
+      "blueprint_ref": "section 3",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-ZONE-SIGNING-FILESYSTEM-ESCAPE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "ZONE_CODEX_PRODUCTION_SOURCE_WRITES",
+      "description": "Codex plane (zone 1) has no production source writes",
+      "blueprint_ref": "section 3",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-ZONE-CODEX-PRODUCTION-SOURCE-WRITES",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "OPS_MODE_GIT_WRITES",
+      "description": "fund-ops has no Git writes (separate from repository writes)",
+      "blueprint_ref": "section 5",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-OPS-MODE-GIT-WRITES",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "OPS_COINVEST_DIRECT_ENDPOINT",
+      "description": "fund-ops has no Co-Invest direct endpoint (read-only intelligence proxy only)",
+      "blueprint_ref": "sections 5, 17 inv. 48",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-OPS-COINVEST-DIRECT-ENDPOINT",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 2
+    },
+    {
+      "id": "COINVEST_PAPER_WRITES",
+      "description": "fund-ops has no Co-Invest paper writes; fund-dev paper validation only through the isolated adapter",
+      "blueprint_ref": "sections 5, 17 inv. 50",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-COINVEST-PAPER-WRITES",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 2
+    },
+    {
+      "id": "DEV_MODE_PRODUCTION_LEDGER",
+      "description": "fund-dev has no production ledger",
+      "blueprint_ref": "section 5",
+      "contract": "contracts/trust-zones.json",
+      "denial_test": "DENY-DEV-MODE-PRODUCTION-LEDGER",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 3
+    },
+    {
+      "id": "GOV_LLM_CHANGES_RISK_POLICY",
+      "description": "No LLM changes active risk policy",
+      "blueprint_ref": "section 17 inv. 43",
+      "contract": "contracts/governance.json",
+      "denial_test": "DENY-GOV-LLM-RISK-POLICY",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 7
+    },
+    {
+      "id": "GOV_EXECUTOR_CHANGES_POLICY",
+      "description": "No executor changes policy",
+      "blueprint_ref": "section 17 inv. 44",
+      "contract": "contracts/governance.json",
+      "denial_test": "DENY-GOV-EXECUTOR-POLICY",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "GOV_AI_RISK_OFFICER_EXECUTES",
+      "description": "No AI risk officer executes",
+      "blueprint_ref": "section 17 inv. 45",
+      "contract": "contracts/governance.json",
+      "denial_test": "DENY-GOV-AI-RISK-OFFICER-EXECUTES",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 4
+    },
+    {
+      "id": "GOV_MCP_EXPANSION_WIDENS_ALLOWLIST",
+      "description": "No remote MCP capability expansion automatically widens the production allowlist",
+      "blueprint_ref": "section 17 inv. 49",
+      "contract": "contracts/governance.json",
+      "denial_test": "DENY-GOV-MCP-ALLOWLIST-WIDENING",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "MCP_FORBIDDEN_TOOL_SURFACE",
+      "description": "Per-server MCP tool allowlists are closed; no forbidden tool, synonym, unknown server or write tool on a read-only server",
+      "blueprint_ref": "section 9",
+      "contract": "contracts/mcp-surface.json",
+      "denial_test": "DENY-MCP-FORBIDDEN-TOOL-SURFACE",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "OPERATOR_CONTROLS_NOT_MCP",
+      "description": "Operator controls (arm, disarm, halt, flatten, activate, rotate, custody) live only in fundctl, never as an MCP tool",
+      "blueprint_ref": "section 9",
+      "contract": "contracts/mcp-surface.json",
+      "denial_test": "DENY-OPERATOR-CONTROLS-NOT-MCP",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 1
+    },
+    {
+      "id": "INTENT_EXPIRY_CANCELS_PROTECTION",
+      "description": "No intent expiry/cancel edge leaves a position-exposed state, so protective exits are never canceled by expiry",
+      "blueprint_ref": "section 17 inv. 36",
+      "contract": "contracts/trade-intent-state-machine.json",
+      "denial_test": "DENY-INTENT-EXPIRY-CANCELS-PROTECTION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0,
+      "runtime_enforced_in_phase": 8
+    }
+  ]
+}

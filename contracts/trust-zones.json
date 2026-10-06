@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "blueprint_ref": "V1.1 section 3",
+  "zones": [
+    {
+      "id": 0,
+      "name": "HUMAN / CUSTODY ROOT",
+      "components": [
+        "operator",
+        "hardware-backed master EOA",
+        "Rabby operator interface"
+      ],
+      "codex_present": false,
+      "mcp_present": false,
+      "holds_trading_key": false,
+      "raw_exchange_write": false,
+      "custody_actions": true,
+      "ai_process_control": false
+    },
+    {
+      "id": 1,
+      "name": "CODEX INTELLIGENCE PLANE",
+      "components": [
+        "CIO and specialist subagents",
+        "fin-data / Massive / Hyperliquid read-only / OpenRouter committee"
+      ],
+      "codex_present": true,
+      "mcp_present": true,
+      "holds_trading_key": false,
+      "raw_exchange_write": false,
+      "custody_actions": false,
+      "production_source_writes": false
+    },
+    {
+      "id": 2,
+      "name": "INTENT / CONTROL PLANE",
+      "components": [
+        "fund-state service",
+        "intent gateway",
+        "state machine",
+        "schema validation",
+        "provenance",
+        "idempotency",
+        "policy versioning"
+      ],
+      "codex_present": false,
+      "mcp_present": false,
+      "holds_trading_key": false,
+      "raw_exchange_write": false,
+      "custody_actions": false,
+      "treats_llm_output_as_hostile": true
+    },
+    {
+      "id": 3,
+      "name": "DETERMINISTIC RISK / AUTHORIZATION PLANE",
+      "components": [
+        "riskd",
+        "portfolio reconciliation",
+        "exposure engine",
+        "breakers",
+        "execution-permit issuer"
+      ],
+      "codex_present": false,
+      "mcp_present": false,
+      "holds_trading_key": false,
+      "raw_exchange_write": false,
+      "custody_actions": false,
+      "issues_execution_permit": true
+    },
+    {
+      "id": 4,
+      "name": "EXECUTION PLANE",
+      "components": [
+        "traderd",
+        "Hyperliquid transport",
+        "order lifecycle",
+        "reconciliation",
+        "dead-man scheduling",
+        "rate-limit management"
+      ],
+      "codex_present": false,
+      "mcp_present": false,
+      "holds_trading_key": false,
+      "raw_exchange_write": false,
+      "custody_actions": false,
+      "acts_only_inside_execution_permit": true
+    },
+    {
+      "id": 5,
+      "name": "SIGNING PLANE",
+      "components": [
+        "signerd",
+        "nonce high-water mark",
+        "canonical payload constructor",
+        "compile-time action allowlist"
+      ],
+      "codex_present": false,
+      "mcp_present": false,
+      "holds_trading_key": true,
+      "raw_exchange_write": false,
+      "custody_actions": false,
+      "compile_time_action_allowlist": true,
+      "arbitrary_shell": false,
+      "general_outbound_network": false,
+      "filesystem_outside_state_boundary": false
+    }
+  ],
+  "global_prohibitions": [
+    {
+      "id": "GENERIC_EXCHANGE_ENDPOINT_TO_CODEX",
+      "description": "No generic exchange endpoint exposed to Codex",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "GENERIC_SIGNER_TO_TRADERD_OR_MCP",
+      "description": "No generic signer exposed to traderd or MCP",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "THIRD_PARTY_CAPITAL",
+      "description": "No third-party capital and no public vault accepting outside deposits",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "API_WALLET_MANAGEMENT",
+      "description": "No autonomous creation, approval, replacement, or revocation of API wallets",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "CUSTODY_CONFIG_CHANGE",
+      "description": "No autonomous change to custody configuration",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "RUNTIME_SOURCE_MUTATION",
+      "description": "No runtime source-code mutation in the live operations plane",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "AUTONOMOUS_DEPLOYMENT",
+      "description": "No autonomous production deployment",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "SELF_PROMOTION",
+      "description": "No self-promotion of strategies into capital",
+      "blueprint_ref": "section 2"
+    },
+    {
+      "id": "COINVEST_LIVE_EXECUTION",
+      "description": "Co-Invest live execution is not part of the production path",
+      "blueprint_ref": "sections 5, 17 inv. 48"
+    }
+  ],
+  "operating_modes": {
+    "fund-dev": {
+      "repository_writes": true,
+      "intent_submission": false,
+      "signerd_present": false,
+      "mainnet_agent_secret_present": false,
+      "riskd_production_endpoint": false,
+      "traderd_production_ipc": false,
+      "coinvest_live_execution": false,
+      "production_ledger_present": false,
+      "coinvest_paper_direct_writes": false,
+      "coinvest_paper_validation_isolated_adapter_only": true
+    },
+    "fund-ops": {
+      "repository_writes": false,
+      "intent_submission": true,
+      "signer_access": false,
+      "direct_exchange_writes": false,
+      "package_installation": false,
+      "arbitrary_mcp_servers": false,
+      "coinvest_live_execution": false,
+      "git_writes": false,
+      "coinvest_direct_endpoint": false,
+      "coinvest_paper_writes": false
+    }
+  }
+}

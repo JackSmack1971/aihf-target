@@ -1,0 +1,13 @@
+{
+  "name": "aihf-target",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI Hedge Fund control plane (Codex target) - Phase 0 constitutional contracts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

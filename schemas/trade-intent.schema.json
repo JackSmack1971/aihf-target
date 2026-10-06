@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TradeIntent",
+  "description": "V1.1 section 22. Closed shape. The LLM never supplies asset index, rounded tick/lot, nonce, cloid, raw action, final size or signature; those fields are intentionally absent and additionalProperties:false rejects them.",
+  "$defs": {
+    "decimal": {
+      "type": "string",
+      "maxLength": 40,
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "timestamp": {
+      "type": "string",
+      "maxLength": 40,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "orderType": {
+      "enum": [
+        "limit_gtc",
+        "limit_ioc"
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "trade_intent_id",
+    "research_question_id",
+    "thesis_id",
+    "strategy_id",
+    "strategy_version",
+    "account_id",
+    "instrument",
+    "side",
+    "effect",
+    "thesis",
+    "evidence_refs",
+    "evidence_cutoff_at",
+    "entry",
+    "invalidation",
+    "risk",
+    "execution_constraints",
+    "exit_conditions",
+    "created_at"
+  ],
+  "properties": {
+    "trade_intent_id": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^TI-[0-9]{8}-[0-9]{6}$"
+    },
+    "research_question_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "thesis_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "strategy_version": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "account_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "instrument": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "side": {
+      "enum": [
+        "long",
+        "short"
+      ]
+    },
+    "effect": {
+      "enum": [
+        "increase",
+        "reduce"
+      ]
+    },
+    "thesis": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "evidence_cutoff_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "min_price",
+        "max_price"
+      ],
+      "properties": {
+        "kind": {
+          "const": "limit_range"
+        },
+        "min_price": {
+          "$ref": "#/$defs/decimal"
+        },
+        "max_price": {
+          "$ref": "#/$defs/decimal"
+        }
+      }
+    },
+    "invalidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "price"
+      ],
+      "properties": {
+        "kind": {
+          "const": "price"
+        },
+        "price": {
+          "$ref": "#/$defs/decimal"
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk_budget_bps_nav",
+        "max_loss_usd",
+        "requested_notional_usd",
+        "requested_leverage"
+      ],
+      "properties": {
+        "risk_budget_bps_nav": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_loss_usd": {
+          "$ref": "#/$defs/decimal"
+        },
+        "requested_notional_usd": {
+          "$ref": "#/$defs/decimal"
+        },
+        "requested_leverage": {
+          "$ref": "#/$defs/decimal"
+        }
+      }
+    },
+    "execution_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_order_types",
+        "max_slippage_bps",
+        "expires_at"
+      ],
+      "properties": {
+        "allowed_order_types": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/orderType"
+          }
+        },
+        "max_slippage_bps": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "10000 bps is a structural bound, not a trading default"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "exit_conditions": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "price": {
+            "$ref": "#/$defs/decimal"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      }
+    },
+    "created_at": {
+      "$ref": "#/$defs/timestamp"
+    }
+  }
+}

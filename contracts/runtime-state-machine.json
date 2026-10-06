@@ -1,0 +1,82 @@
+{
+  "id": "runtime",
+  "blueprint_ref": "V1.1 section 20",
+  "initial": "STOPPED",
+  "states": [
+    "STOPPED",
+    "BOOTING",
+    "SYNCING",
+    "DISARMED",
+    "ARMING",
+    "ARMED",
+    "DEGRADED",
+    "DRAINING",
+    "SAFE_HALT"
+  ],
+  "transitions": {
+    "STOPPED": [
+      "BOOTING"
+    ],
+    "BOOTING": [
+      "SYNCING",
+      "SAFE_HALT"
+    ],
+    "SYNCING": [
+      "DISARMED",
+      "SAFE_HALT"
+    ],
+    "DISARMED": [
+      "ARMING",
+      "STOPPED",
+      "SAFE_HALT"
+    ],
+    "ARMING": [
+      "ARMED",
+      "DISARMED",
+      "SAFE_HALT"
+    ],
+    "ARMED": [
+      "DEGRADED",
+      "DRAINING"
+    ],
+    "DEGRADED": [
+      "ARMED",
+      "SAFE_HALT"
+    ],
+    "DRAINING": [
+      "SAFE_HALT"
+    ],
+    "SAFE_HALT": [
+      "STOPPED"
+    ]
+  },
+  "human_gated_transitions": [
+    {
+      "from": "DISARMED",
+      "to": "ARMING",
+      "requires": "human arm + valid activation manifest + health gates"
+    },
+    {
+      "from": "SAFE_HALT",
+      "to": "STOPPED",
+      "requires": "explicit human recovery acknowledgment"
+    }
+  ],
+  "condition_gated_transitions": [
+    {
+      "from": "DEGRADED",
+      "to": "ARMED",
+      "requires": "recover + full reconcile (deterministic; enforced by later-phase runtime)"
+    }
+  ],
+  "forbidden_transitions": [
+    {
+      "from": "SAFE_HALT",
+      "to": "ARMED",
+      "reason": "SAFE_HALT -> ARMED requires explicit human recovery and a new arm lease (invariant 9); no direct edge exists"
+    }
+  ],
+  "exposure_increase_allowed_states": [
+    "ARMED"
+  ]
+}

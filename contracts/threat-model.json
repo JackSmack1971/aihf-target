@@ -1,0 +1,361 @@
+{
+  "schema_version": 1,
+  "blueprint_ref": "V1.1 section 31",
+  "safe_states": [
+    "REJECT_INPUT",
+    "BLOCK_NEW_EXPOSURE",
+    "DEGRADED",
+    "SAFE_HALT",
+    "FAIL_CLOSED_REBUILD",
+    "DENY_CAPABILITY",
+    "RECONCILE_BEFORE_RETRY"
+  ],
+  "note": "enforced_in_phase names the blueprint phase that must implement the deterministic enforcement; Phase 0 defines the contract only.",
+  "threats": [
+    {
+      "id": "PD-01",
+      "category": "prompt_data",
+      "description": "Malicious news/article text instructing agents to call tools",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 4
+    },
+    {
+      "id": "PD-02",
+      "category": "prompt_data",
+      "description": "Prompt injection returned by an MCP server",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "PD-03",
+      "category": "prompt_data",
+      "description": "Model committee attempting to smuggle tool instructions",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 5
+    },
+    {
+      "id": "PD-04",
+      "category": "prompt_data",
+      "description": "Malicious token metadata or symbol names",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "PD-05",
+      "category": "prompt_data",
+      "description": "Oversized or malformed provider responses",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "PD-06",
+      "category": "prompt_data",
+      "description": "Co-Invest response containing executable links/actions or tool-instruction injection",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "PD-07",
+      "category": "prompt_data",
+      "description": "Upstream Co-Invest schema drift introducing a new state-changing method",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "PD-08",
+      "category": "prompt_data",
+      "description": "False source-independence caused by two transports sharing one underlying market feed",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "MF-01",
+      "category": "model_failure",
+      "description": "Hallucinated account state",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 3
+    },
+    {
+      "id": "MF-02",
+      "category": "model_failure",
+      "description": "Stale prices",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 7
+    },
+    {
+      "id": "MF-03",
+      "category": "model_failure",
+      "description": "Contradictory agents",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 4
+    },
+    {
+      "id": "MF-04",
+      "category": "model_failure",
+      "description": "Role confusion",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "MF-05",
+      "category": "model_failure",
+      "description": "Infinite delegation loops",
+      "expected_safe_state": "DEGRADED",
+      "enforced_in_phase": 4
+    },
+    {
+      "id": "MF-06",
+      "category": "model_failure",
+      "description": "Repeated TradeIntent spam",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 7
+    },
+    {
+      "id": "MF-07",
+      "category": "model_failure",
+      "description": "Committee collusion or consensus on wrong data",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 5
+    },
+    {
+      "id": "MF-08",
+      "category": "model_failure",
+      "description": "Malformed structured outputs",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "LC-01",
+      "category": "local_compromise",
+      "description": "fund-ops Codex process compromised",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-02",
+      "category": "local_compromise",
+      "description": "traderd compromised",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "LC-03",
+      "category": "local_compromise",
+      "description": "One MCP server compromised",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-04",
+      "category": "local_compromise",
+      "description": "SQLite file tampering",
+      "expected_safe_state": "SAFE_HALT",
+      "enforced_in_phase": 3,
+      "risk_reducing_action_required": true
+    },
+    {
+      "id": "LC-05",
+      "category": "local_compromise",
+      "description": "Log injection",
+      "expected_safe_state": "REJECT_INPUT",
+      "enforced_in_phase": 3
+    },
+    {
+      "id": "LC-06",
+      "category": "local_compromise",
+      "description": "Environment-variable leakage",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-07",
+      "category": "local_compromise",
+      "description": "Dependency compromise",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-08",
+      "category": "local_compromise",
+      "description": "Rogue project .codex configuration",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-09",
+      "category": "local_compromise",
+      "description": "Session launched with unsafe permissions",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-10",
+      "category": "local_compromise",
+      "description": "Direct fund-ops registration of an unrestricted Co-Invest endpoint",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-11",
+      "category": "local_compromise",
+      "description": "Bypass of the Co-Invest read-only proxy through shell/network egress",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 1
+    },
+    {
+      "id": "LC-12",
+      "category": "local_compromise",
+      "description": "OAuth credential leakage from the Co-Invest proxy or paper adapter",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "LC-13",
+      "category": "local_compromise",
+      "description": "Paper validation accidentally targeting live mode",
+      "expected_safe_state": "DENY_CAPABILITY",
+      "enforced_in_phase": 6
+    },
+    {
+      "id": "EN-01",
+      "category": "exchange_network",
+      "description": "REST timeout after accepted order",
+      "expected_safe_state": "RECONCILE_BEFORE_RETRY",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-02",
+      "category": "exchange_network",
+      "description": "WebSocket loss",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 2
+    },
+    {
+      "id": "EN-03",
+      "category": "exchange_network",
+      "description": "Duplicate response",
+      "expected_safe_state": "RECONCILE_BEFORE_RETRY",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-04",
+      "category": "exchange_network",
+      "description": "Response reordering",
+      "expected_safe_state": "RECONCILE_BEFORE_RETRY",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-05",
+      "category": "exchange_network",
+      "description": "Partial batch rejection",
+      "expected_safe_state": "RECONCILE_BEFORE_RETRY",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-06",
+      "category": "exchange_network",
+      "description": "Rate limiting",
+      "expected_safe_state": "DEGRADED",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-07",
+      "category": "exchange_network",
+      "description": "Clock skew",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-08",
+      "category": "exchange_network",
+      "description": "Nonce collision",
+      "expected_safe_state": "SAFE_HALT",
+      "enforced_in_phase": 8
+    },
+    {
+      "id": "EN-09",
+      "category": "exchange_network",
+      "description": "Scheduled-cancel refresh failure",
+      "expected_safe_state": "SAFE_HALT",
+      "enforced_in_phase": 9
+    },
+    {
+      "id": "EN-10",
+      "category": "exchange_network",
+      "description": "Protective order rejection",
+      "expected_safe_state": "SAFE_HALT",
+      "enforced_in_phase": 9,
+      "risk_reducing_action_required": true
+    },
+    {
+      "id": "EN-11",
+      "category": "exchange_network",
+      "description": "Extreme spread or liquidity collapse",
+      "expected_safe_state": "BLOCK_NEW_EXPOSURE",
+      "enforced_in_phase": 7
+    }
+  ],
+  "safe_state_runtime_mapping": {
+    "REJECT_INPUT": {
+      "runtime_states": [],
+      "runtime_effect": "NO_STATE_CHANGE",
+      "intent_effect": "REJECTED",
+      "exposure_increase_allowed": false,
+      "description": "Input rejected at the gateway; the TradeIntent becomes REJECTED; runtime state is unchanged."
+    },
+    "BLOCK_NEW_EXPOSURE": {
+      "runtime_states": [
+        "DEGRADED",
+        "DISARMED",
+        "SAFE_HALT"
+      ],
+      "runtime_effect": "DEGRADED_OR_STAY_NON_ARMED",
+      "intent_effect": "NO_PERMIT_ISSUED",
+      "exposure_increase_allowed": false,
+      "description": "Runtime moves to DEGRADED or remains in a non-ARMED state; no exposure increase; risk-reducing action stays available."
+    },
+    "DEGRADED": {
+      "runtime_states": [
+        "DEGRADED"
+      ],
+      "runtime_effect": "ENTER_DEGRADED",
+      "intent_effect": "NO_PERMIT_ISSUED",
+      "exposure_increase_allowed": false,
+      "description": "Runtime enters DEGRADED; recovery requires full reconcile."
+    },
+    "SAFE_HALT": {
+      "runtime_states": [
+        "SAFE_HALT"
+      ],
+      "runtime_effect": "ENTER_SAFE_HALT",
+      "intent_effect": "NO_PERMIT_ISSUED",
+      "exposure_increase_allowed": false,
+      "description": "Runtime enters SAFE_HALT; only deterministic cancel/protect/risk-reducing actions, never dependent on an LLM."
+    },
+    "FAIL_CLOSED_REBUILD": {
+      "runtime_states": [
+        "SAFE_HALT"
+      ],
+      "runtime_effect": "ENTER_SAFE_HALT_THEN_REBUILD",
+      "intent_effect": "NO_PERMIT_ISSUED",
+      "exposure_increase_allowed": false,
+      "description": "State is untrusted: SAFE_HALT, then rebuild from authoritative evidence before any recovery."
+    },
+    "DENY_CAPABILITY": {
+      "runtime_states": [],
+      "runtime_effect": "NO_STATE_CHANGE",
+      "intent_effect": "REJECTED",
+      "exposure_increase_allowed": false,
+      "description": "The capability request is denied and logged; no runtime transition is required."
+    },
+    "RECONCILE_BEFORE_RETRY": {
+      "runtime_states": [
+        "DEGRADED"
+      ],
+      "runtime_effect": "ENTER_DEGRADED_UNTIL_RECONCILED",
+      "intent_effect": "RECONCILING",
+      "exposure_increase_allowed": false,
+      "description": "No retry before authoritative reconciliation; exposure increase blocked meanwhile."
+    }
+  }
+}

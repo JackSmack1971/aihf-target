@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "blueprint_ref": "V1.1 section 17 invariants 43, 44, 45, 49",
+  "note": "Fail-closed governance: every actor has an explicit closed allowlist drawn from a closed authority vocabulary. Anything not in the vocabulary, or not permitted for the actor's class, is denied. The four forbidden rows and the class/actor/vocabulary pins are also pinned in src/contracts/trust-zone-checker.mjs, so weakening this file fails closed. Deny patterns are a second layer.",
+  "authority_vocabulary": [
+    "submit_trade_intent",
+    "propose_risk_policy_change",
+    "produce_research_opinion",
+    "submit_order_within_permit",
+    "issue_risk_review_verdict",
+    "propose_allowlist_extension_for_human_review",
+    "change_active_risk_policy",
+    "change_policy",
+    "execute_order",
+    "widen_production_allowlist"
+  ],
+  "actors": [
+    {
+      "id": "codex-cio",
+      "class": "llm",
+      "allowed_authorities": [
+        "submit_trade_intent",
+        "propose_risk_policy_change"
+      ]
+    },
+    {
+      "id": "committee-member",
+      "class": "llm",
+      "allowed_authorities": [
+        "produce_research_opinion"
+      ]
+    },
+    {
+      "id": "traderd",
+      "class": "executor",
+      "allowed_authorities": [
+        "submit_order_within_permit"
+      ]
+    },
+    {
+      "id": "ai-risk-officer",
+      "class": "ai_risk_officer",
+      "allowed_authorities": [
+        "issue_risk_review_verdict"
+      ]
+    },
+    {
+      "id": "remote-mcp-server",
+      "class": "mcp_server",
+      "allowed_authorities": [
+        "propose_allowlist_extension_for_human_review"
+      ]
+    }
+  ],
+  "forbidden": [
+    {
+      "id": "GOV_LLM_CHANGES_RISK_POLICY",
+      "actor_class": "llm",
+      "authority": "change_active_risk_policy",
+      "pattern": "^(change|modify|update|set|edit|raise|lower|adjust|activate|write|override|approve|relax|disable|bypass)_.*(polic|limit|leverage|budget|threshold|cap)|polic\\w*_(update|change|edit|write|override|set)|(risk|limit|leverage|budget)\\w*_(update|change|edit|override|raise|lower)",
+      "blueprint_ref": "section 17 inv. 43"
+    },
+    {
+      "id": "GOV_EXECUTOR_CHANGES_POLICY",
+      "actor_class": "executor",
+      "authority": "change_policy",
+      "pattern": "^(change|modify|update|set|edit|raise|lower|adjust|activate|write|override|approve|relax|disable|bypass)_.*(polic|limit|leverage|budget|threshold|cap)|polic\\w*_(update|change|edit|write|override|set)|(risk|limit|leverage|budget)\\w*_(update|change|edit|override|raise|lower)",
+      "blueprint_ref": "section 17 inv. 44"
+    },
+    {
+      "id": "GOV_AI_RISK_OFFICER_EXECUTES",
+      "actor_class": "ai_risk_officer",
+      "authority": "execute_order",
+      "pattern": "(^|_)(execute|execution|submit|place|cancel|modify|sign|send|close|flatten|liquidate|reduce|trade|order)(_|$)",
+      "blueprint_ref": "section 17 inv. 45"
+    },
+    {
+      "id": "GOV_MCP_EXPANSION_WIDENS_ALLOWLIST",
+      "actor_class": "mcp_server",
+      "authority": "widen_production_allowlist",
+      "pattern": "^(widen|expand|extend|add|modify|update|grant|auto|register|install|enable)_.*(allowlist|capabilit|tool|server|permission)|(allowlist|tool|capabilit|permission)s?_(add|update|register|expand|widen|grant)",
+      "blueprint_ref": "section 17 inv. 49"
+    }
+  ]
+}

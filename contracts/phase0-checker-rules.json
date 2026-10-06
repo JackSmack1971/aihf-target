@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "note": "Rule data for src/contracts/trust-zone-checker.mjs. Kept outside src/ so the checker source carries no capability-bearing identifiers that its own tree scan would flag. Tree rules are a static Phase-0 tripwire (deterministic regex over repo paths, code-file text outside tests/ and package.json scripts), not a runtime control. Weakening a rule must fail tests/conformance/trust-zones.test.mjs, which pins required coverage.",
+  "mode_rules": {
+    "fund-dev": {
+      "forbidden": {
+        "intent_submission": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "signerd_present": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "mainnet_agent_secret_present": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "riskd_production_endpoint": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "traderd_production_ipc": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "coinvest_live_execution": [
+          "COINVEST_LIVE_EXECUTION"
+        ],
+        "production_ledger_present": [
+          "DEV_MODE_PRODUCTION_LEDGER"
+        ],
+        "coinvest_paper_direct_writes": [
+          "COINVEST_PAPER_WRITES"
+        ]
+      },
+      "allowed_true": [
+        "repository_writes",
+        "coinvest_paper_validation_isolated_adapter_only"
+      ],
+      "required_true": {
+        "coinvest_paper_validation_isolated_adapter_only": [
+          "COINVEST_PAPER_WRITES"
+        ]
+      }
+    },
+    "fund-ops": {
+      "forbidden": {
+        "repository_writes": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES",
+          "RUNTIME_SOURCE_MUTATION"
+        ],
+        "signer_access": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "direct_exchange_writes": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "package_installation": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES",
+          "RUNTIME_SOURCE_MUTATION"
+        ],
+        "arbitrary_mcp_servers": [
+          "OPS_MODE_NO_SIGNER_NO_WRITES"
+        ],
+        "coinvest_live_execution": [
+          "COINVEST_LIVE_EXECUTION"
+        ],
+        "git_writes": [
+          "OPS_MODE_GIT_WRITES"
+        ],
+        "coinvest_direct_endpoint": [
+          "OPS_COINVEST_DIRECT_ENDPOINT"
+        ],
+        "coinvest_paper_writes": [
+          "COINVEST_PAPER_WRITES"
+        ]
+      },
+      "allowed_true": [
+        "intent_submission"
+      ],
+      "required_true": {}
+    }
+  },
+  "signer_groups": {
+    "API_WALLET_MANAGEMENT": [
+      "approveAgent",
+      "revokeAgent"
+    ],
+    "CUSTODY_CONFIG_CHANGE": [
+      "convertToMultiSigUser"
+    ],
+    "GENERIC_SIGNER_TO_TRADERD_OR_MCP": [
+      "signRawAction",
+      "signUserEip712"
+    ]
+  },
+  "tree_rules": [
+    {
+      "capability": "AUTONOMOUS_DEPLOYMENT",
+      "scope": "path",
+      "pattern": "(^|/)(\\.github/(workflows|actions)(/|$)|\\.gitlab-ci\\.yml$|\\.circleci(/|$)|\\.buildkite(/|$)|jenkinsfile$|dockerfile[^/]*$|docker-compose[^/]*$|deploy[^/]*|(terraform|k8s|kubernetes|helm|ansible)(/|$)|[^/]*\\.tf$)",
+      "flags": "i",
+      "description": "CI/CD pipeline, container, infrastructure or deploy artifacts must not exist in the repository"
+    },
+    {
+      "capability": "AUTONOMOUS_DEPLOYMENT",
+      "scope": "code",
+      "pattern": "\\b(kubectl|terraform|docker\\s+push|npm\\s+publish)\\b|[Dd]eploy\\w*[Pp]rod|deploy_\\w*prod",
+      "flags": "",
+      "description": "code outside tests/ must not contain a production deployment path"
+    },
+    {
+      "capability": "AUTONOMOUS_DEPLOYMENT",
+      "scope": "package_json",
+      "pattern": "deploy|publish|release|kubectl|terraform|docker\\s+push",
+      "flags": "i",
+      "description": "package.json scripts must not deploy or publish"
+    },
+    {
+      "capability": "SELF_PROMOTION",
+      "scope": "code",
+      "pattern": "[Pp]romot(e|es|ed|ing|ion)|PROMOTE_|[Aa]llocateCapital|allocate_capital|[Gg]raduateTo|graduate_to",
+      "flags": "",
+      "description": "code outside tests/ must not contain a strategy promotion or capital-allocation path"
+    },
+    {
+      "capability": "SELF_PROMOTION",
+      "scope": "path",
+      "pattern": "(^|/)[^/]*promot[^/]*$",
+      "flags": "i",
+      "description": "no promotion modules in the repository"
+    },
+    {
+      "capability": "CUSTODY_CONFIG_CHANGE",
+      "scope": "code",
+      "pattern": "(change|set|update|modify|rotate|replace|migrate)[A-Z_]?\\w*[Cc]ustody|[a-z]\\w*Custody\\w*(Change|Update|Modify|Rotate|Config|Replace)|custody_(config|change|update|modify|rotate|replace)|[Cc]onvertTo\\w*[Mm]ulti[Ss]ig|master_?[Kk]ey\\w*(Rotate|Replace|Set|Change)",
+      "flags": "",
+      "description": "code outside tests/ must not contain a custody configuration change path"
+    },
+    {
+      "capability": "COINVEST_LIVE_EXECUTION",
+      "scope": "code",
+      "pattern": "[Cc]o[-_ ]?[Ii]nvest[\\w\\s-]{0,30}([Ll]ive|[Ee]xecut|[Ss]ubmit|[Oo]rder|[Tt]rade)|([Ll]ive|[Ee]xecut|[Ss]ubmit|[Oo]rder|[Tt]rade)\\w{0,12}[-_ ]?[Cc]o[-_ ]?[Ii]nvest",
+      "flags": "",
+      "description": "code outside tests/ must not contain a Co-Invest live execution path"
+    },
+    {
+      "capability": "RUNTIME_SOURCE_MUTATION",
+      "scope": "code",
+      "pattern": "\\b(writeFile|writeFileSync|appendFile|appendFileSync|createWriteStream|rmSync|unlinkSync|renameSync|copyFileSync|truncateSync|mkdirSync|symlinkSync|rm|unlink|rename)\\s*\\(",
+      "flags": "",
+      "description": "code outside tests/ must not write, delete or rename files (no runtime source mutation)"
+    },
+    {
+      "capability": "API_WALLET_MANAGEMENT",
+      "scope": "code",
+      "pattern": "[Aa]pprove_?[Aa]gent|[Rr]evoke_?[Aa]gent|(create|approve|replace|revoke|rotate|new)_?(api|agent)_?[Ww]allet|(create|approve|replace|revoke|rotate|new)(Api|Agent)Wallet",
+      "flags": "i",
+      "description": "code outside tests/ must not contain an API-wallet management path"
+    },
+    {
+      "capability": "GENERIC_EXCHANGE_ENDPOINT_TO_CODEX",
+      "scope": "code",
+      "pattern": "\\bfetch\\s*\\(|\\bWebSocket\\b|\\bXMLHttpRequest\\b|hyperliquid\\.xyz|[Rr]awExchange|raw_exchange_(post|action|request)|exchange_?[Pp]ost",
+      "flags": "",
+      "description": "code outside tests/ must not contain a generic exchange transport or endpoint"
+    },
+    {
+      "capability": "GENERIC_SIGNER_TO_TRADERD_OR_MCP",
+      "scope": "code",
+      "pattern": "[Ss]ign_?(Raw|Any|Arbitrary|Generic|Payload|Typed)|sign_?(raw|any|arbitrary|generic|payload|typed)|raw_?[Aa]ction|eth_sign|personal_sign|[Ss]ign_?[Ee]ip_?712",
+      "flags": "",
+      "description": "code outside tests/ must not contain a generic or raw signing entrypoint"
+    },
+    {
+      "capability": "THIRD_PARTY_CAPITAL",
+      "scope": "code",
+      "pattern": "third_?[Pp]arty_?[Cc]apital\\s*[:=]\\s*true|(accept|allow|enable|open)_?(Outside|External|Public|ThirdParty|third_party)_?(Deposit|Capital|Vault|Investor)|[Pp]ublic_?[Vv]ault",
+      "flags": "",
+      "description": "code outside tests/ must not contain a third-party capital path"
+    },
+    {
+      "capability": "ZONE_CODEX_TRADERD_KEY",
+      "scope": "code",
+      "pattern": "private_?[Kk]ey|secret_?[Kk]ey|[Mm]nemonic|seed_?[Pp]hrase|api_?[Ww]allet_?[Ss]ecret|agent_?[Ss]ecret",
+      "flags": "i",
+      "description": "code outside tests/ must not reference key material"
+    },
+    {
+      "capability": "ZONE_CODEX_TRADERD_KEY",
+      "scope": "path",
+      "pattern": "(^|/)(\\.env[^/]*|[^/]*\\.(key|pem|p12|pfx))$",
+      "flags": "i",
+      "description": "no key or env files in the repository"
+    },
+    {
+      "capability": "ZONE_SIGNING_ARBITRARY_SHELL",
+      "scope": "code",
+      "pattern": "child_process|(?<![.\\w$])(spawn|spawnSync|exec|execSync|execFile|execFileSync|fork)\\s*\\(|\\.(spawn|spawnSync|execSync|execFile|execFileSync)\\s*\\(|\\bBun\\.(spawn|spawnSync|\\$)|\\bDeno\\.Command|\\bShell\\.exec|os\\.system|subprocess",
+      "flags": "",
+      "description": "code outside tests/ must not spawn a shell or subprocess"
+    },
+    {
+      "capability": "ZONE_SIGNING_GENERAL_NETWORK",
+      "scope": "code",
+      "pattern": "['\"](node:)?(net|http|https|http2|tls|dgram|dns)(/promises)?['\"]|\\bfetch\\s*\\(|\\bWebSocket\\b|\\bundici\\b|\\bXMLHttpRequest\\b|\\bEventSource\\b|sendBeacon|\\baxios\\b|node-fetch|\\bsuperagent\\b|\\brequests\\.(get|post)\\b|\\burllib\\b",
+      "flags": "",
+      "description": "code outside tests/ must not open general network access"
+    },
+    {
+      "capability": "ZONE_SIGNING_FILESYSTEM_ESCAPE",
+      "scope": "code",
+      "pattern": "process\\.chdir|\\.\\./\\.\\./(?!contracts/)|\\.\\./\\.\\./contracts/[^'\"`]*(\\.\\.|\\$\\{)|\\.\\./\\.\\./contracts/['\"`]\\s*\\+|['\"]\\.\\.?/?['\"]|['\"]\\.\\.['\"]\\s*,\\s*['\"]\\.\\.['\"]|path\\.(resolve|join)\\s*\\(\\s*['\"]/|resolve\\s*\\(\\s*['\"]/['\"]|['\"]/(tmp|etc|dev|opt|mnt|srv|var|home|root|usr|proc|sys|run|bin|lib|Users)(/|['\"])|homedir\\s*\\(|tmpdir\\s*\\(",
+      "flags": "",
+      "description": "code outside tests/ must not reach outside its own state boundary"
+    },
+    {
+      "capability": "OPS_MODE_GIT_WRITES",
+      "scope": "code",
+      "pattern": "git\\s+(push|commit|add|reset|checkout|rebase|merge|tag|clean|rm)\\b|simple-git|isomorphic-git",
+      "flags": "",
+      "description": "code outside tests/ must not perform Git writes"
+    },
+    {
+      "capability": "COINVEST_PAPER_WRITES",
+      "scope": "code",
+      "pattern": "[Cc]o[-_ ]?[Ii]nvest[\\w\\s-]{0,30}[Pp]aper[\\w\\s-]{0,20}([Ww]rite|[Pp]lace|[Ss]ubmit|[Oo]rder)",
+      "flags": "",
+      "description": "code outside tests/ must not write Co-Invest paper orders outside the isolated adapter"
+    },
+    {
+      "capability": "OPS_COINVEST_DIRECT_ENDPOINT",
+      "scope": "code",
+      "pattern": "[Cc]o[-_ ]?[Ii]nvest[\\w\\s-]{0,20}([Dd]irect|[Ee]ndpoint|[Bb]aseUrl|[Aa]pi[Uu]rl)",
+      "flags": "",
+      "description": "code outside tests/ must not define a direct Co-Invest endpoint"
+    }
+  ]
+}

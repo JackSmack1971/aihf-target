@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExecutionPermit",
+  "description": "V1.1 section 12. Bounded, short-lived, single-use authority. Order types exclude market. All fields required; closed shape.",
+  "$defs": {
+    "decimal": {
+      "type": "string",
+      "maxLength": 40,
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "timestamp": {
+      "type": "string",
+      "maxLength": 40,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "permit_id",
+    "trade_intent_id",
+    "strategy_id",
+    "strategy_version",
+    "account",
+    "instrument",
+    "side",
+    "effect",
+    "max_total_size",
+    "max_notional_usd",
+    "price_constraint",
+    "max_slippage_bps",
+    "allowed_order_types",
+    "reduce_only",
+    "issued_at",
+    "expires_at",
+    "policy_hash",
+    "activation_hash",
+    "single_use_nonce",
+    "authorization"
+  ],
+  "properties": {
+    "permit_id": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^EP-[0-9]{8}-[0-9]{6}-[0-9]{2}$"
+    },
+    "trade_intent_id": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^TI-[0-9]{8}-[0-9]{6}$"
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "strategy_version": {
+      "$ref": "#/$defs/hash"
+    },
+    "account": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "instrument": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "side": {
+      "enum": [
+        "buy",
+        "sell"
+      ]
+    },
+    "effect": {
+      "enum": [
+        "increase",
+        "reduce"
+      ]
+    },
+    "max_total_size": {
+      "$ref": "#/$defs/decimal"
+    },
+    "max_notional_usd": {
+      "$ref": "#/$defs/decimal"
+    },
+    "price_constraint": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "max_price"
+          ],
+          "properties": {
+            "kind": {
+              "const": "limit_cap"
+            },
+            "max_price": {
+              "$ref": "#/$defs/decimal"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "min_price"
+          ],
+          "properties": {
+            "kind": {
+              "const": "limit_floor"
+            },
+            "min_price": {
+              "$ref": "#/$defs/decimal"
+            }
+          }
+        }
+      ]
+    },
+    "max_slippage_bps": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10000,
+      "description": "10000 bps is a structural bound, not a trading default"
+    },
+    "allowed_order_types": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "limit_gtc",
+          "limit_ioc"
+        ]
+      }
+    },
+    "reduce_only": {
+      "type": "boolean"
+    },
+    "issued_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "policy_hash": {
+      "$ref": "#/$defs/hash"
+    },
+    "activation_hash": {
+      "$ref": "#/$defs/hash"
+    },
+    "single_use_nonce": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 256
+    },
+    "authorization": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    }
+  }
+}

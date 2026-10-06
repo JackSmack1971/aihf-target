@@ -1,0 +1,212 @@
+{
+  "id": "trade-intent",
+  "blueprint_ref": "V1.1 section 21",
+  "initial": "DRAFT",
+  "states": [
+    "DRAFT",
+    "EVIDENCED",
+    "PROPOSED",
+    "AI_RISK_REVIEW",
+    "PASS",
+    "PASS_WITH_CONSTRAINTS",
+    "POLICY_PRECHECK",
+    "AUTHORIZATION_PENDING",
+    "PERMITTED",
+    "EXECUTION_PLANNING",
+    "QUEUED",
+    "SUBMITTING",
+    "OPEN",
+    "PARTIALLY_FILLED",
+    "FILLED",
+    "PROTECTING",
+    "MONITORING",
+    "EXIT_REQUESTED",
+    "EXITING",
+    "CLOSED",
+    "EXPIRED",
+    "CANCELED",
+    "REJECTED",
+    "SUPERSEDED",
+    "EXECUTION_ERROR",
+    "RECONCILING"
+  ],
+  "terminal_states": [
+    "CLOSED",
+    "EXPIRED",
+    "CANCELED",
+    "REJECTED",
+    "SUPERSEDED"
+  ],
+  "permit_gate": {
+    "state": "PERMITTED",
+    "only_from": "AUTHORIZATION_PENDING"
+  },
+  "execution_states": [
+    "EXECUTION_PLANNING",
+    "QUEUED",
+    "SUBMITTING",
+    "OPEN",
+    "PARTIALLY_FILLED",
+    "FILLED",
+    "PROTECTING",
+    "MONITORING",
+    "EXIT_REQUESTED",
+    "EXITING"
+  ],
+  "protecting_precondition": "Remaining entry quantity is canceled before PROTECTING is entered from PARTIALLY_FILLED; RECONCILING never reaches MONITORING without passing PROTECTING.",
+  "note": "No model declaration changes state; transitions are driven by deterministic services and exchange/control evidence.",
+  "transitions": {
+    "DRAFT": [
+      "EVIDENCED",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "EVIDENCED": [
+      "PROPOSED",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "PROPOSED": [
+      "AI_RISK_REVIEW",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "AI_RISK_REVIEW": [
+      "PASS",
+      "PASS_WITH_CONSTRAINTS",
+      "REJECTED",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "PASS": [
+      "POLICY_PRECHECK",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "PASS_WITH_CONSTRAINTS": [
+      "POLICY_PRECHECK",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "POLICY_PRECHECK": [
+      "AUTHORIZATION_PENDING",
+      "REJECTED",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "AUTHORIZATION_PENDING": [
+      "PERMITTED",
+      "REJECTED",
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED"
+    ],
+    "PERMITTED": [
+      "EXECUTION_PLANNING",
+      "EXPIRED",
+      "CANCELED"
+    ],
+    "EXECUTION_PLANNING": [
+      "QUEUED",
+      "EXECUTION_ERROR"
+    ],
+    "QUEUED": [
+      "SUBMITTING",
+      "EXECUTION_ERROR",
+      "RECONCILING",
+      "CANCELED"
+    ],
+    "SUBMITTING": [
+      "OPEN",
+      "PARTIALLY_FILLED",
+      "FILLED",
+      "EXECUTION_ERROR",
+      "RECONCILING"
+    ],
+    "OPEN": [
+      "PARTIALLY_FILLED",
+      "FILLED",
+      "RECONCILING",
+      "CANCELED",
+      "EXPIRED"
+    ],
+    "PARTIALLY_FILLED": [
+      "FILLED",
+      "PROTECTING",
+      "RECONCILING"
+    ],
+    "FILLED": [
+      "PROTECTING",
+      "RECONCILING"
+    ],
+    "PROTECTING": [
+      "MONITORING",
+      "RECONCILING"
+    ],
+    "MONITORING": [
+      "EXIT_REQUESTED",
+      "RECONCILING"
+    ],
+    "EXIT_REQUESTED": [
+      "EXITING"
+    ],
+    "EXITING": [
+      "CLOSED",
+      "RECONCILING"
+    ],
+    "EXECUTION_ERROR": [
+      "RECONCILING"
+    ],
+    "RECONCILING": [
+      "PROTECTING",
+      "OPEN",
+      "CANCELED",
+      "EXIT_REQUESTED",
+      "CLOSED"
+    ],
+    "CLOSED": [],
+    "EXPIRED": [],
+    "CANCELED": [],
+    "REJECTED": [],
+    "SUPERSEDED": []
+  },
+  "guards": [
+    {
+      "from": "RECONCILING",
+      "to": "CANCELED",
+      "precondition": "Authoritative evidence of no open position and no unprotected exposure",
+      "evidence": "Authoritative exchange state from reconciliation (positions, open orders, protective orders); never a model declaration"
+    },
+    {
+      "from": "RECONCILING",
+      "to": "CLOSED",
+      "precondition": "Authoritative evidence of no open position and no unprotected exposure",
+      "evidence": "Authoritative exchange state from reconciliation (positions, open orders, protective orders); never a model declaration"
+    }
+  ],
+  "protective_exit_invariant": {
+    "blueprint_ref": "section 17 inv. 36",
+    "statement": "Protective exits are never canceled merely because a strategy intent expires or is canceled: no edge leaves a position-exposed state into EXPIRED, CANCELED, SUPERSEDED or REJECTED. Closing out passes through RECONCILING, whose edges into CANCELED/CLOSED are guarded.",
+    "exposed_states": [
+      "PARTIALLY_FILLED",
+      "FILLED",
+      "PROTECTING",
+      "MONITORING",
+      "EXIT_REQUESTED",
+      "EXITING"
+    ],
+    "forbidden_targets": [
+      "EXPIRED",
+      "CANCELED",
+      "SUPERSEDED",
+      "REJECTED"
+    ]
+  }
+}

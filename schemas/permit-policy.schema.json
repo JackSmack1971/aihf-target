@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PermitPolicy",
+  "description": "REQUIRED policy input: maximum permit lifetime. No default exists; null fails activation and checkPermitConsistency fails closed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "max_permit_ttl_ms"
+  ],
+  "properties": {
+    "max_permit_ttl_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    }
+  }
+}

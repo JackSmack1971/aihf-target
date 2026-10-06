@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RiskPolicy",
+  "description": "V1.1 section 18. Numeric limits are REQUIRED numbers; no defaults exist. A template with null numerics must fail activation validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "max_order_notional_pct_nav",
+    "max_position_notional_pct_nav",
+    "max_gross_notional_pct_nav",
+    "max_net_notional_pct_nav",
+    "max_position_leverage",
+    "max_margin_utilization_pct",
+    "max_loss_at_invalidation_pct_nav",
+    "max_strategy_daily_loss_pct_nav",
+    "max_fund_daily_drawdown_pct_nav",
+    "max_concurrent_positions",
+    "max_correlated_cluster_pct_nav",
+    "min_liquidation_buffer_bps",
+    "max_spread_bps",
+    "max_book_impact_bps",
+    "max_entry_slippage_bps",
+    "max_data_staleness_ms",
+    "max_clock_skew_ms",
+    "protection_gap_ms",
+    "min_emergency_rate_limit_reserve",
+    "allow_market_entry_orders",
+    "allow_protective_emergency_orders",
+    "allow_withdrawals",
+    "allow_transfers",
+    "allow_unlisted_assets",
+    "allow_third_party_capital"
+  ],
+  "properties": {
+    "max_order_notional_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_position_notional_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_gross_notional_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_net_notional_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_position_leverage": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_margin_utilization_pct": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_loss_at_invalidation_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_strategy_daily_loss_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_fund_daily_drawdown_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_concurrent_positions": {
+      "type": "integer",
+      "exclusiveMinimum": 0
+    },
+    "max_correlated_cluster_pct_nav": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "min_liquidation_buffer_bps": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_spread_bps": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_book_impact_bps": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_entry_slippage_bps": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_data_staleness_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_clock_skew_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "protection_gap_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "min_emergency_rate_limit_reserve": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "allow_market_entry_orders": {
+      "const": false
+    },
+    "allow_protective_emergency_orders": {
+      "const": true
+    },
+    "allow_withdrawals": {
+      "const": false
+    },
+    "allow_transfers": {
+      "const": false
+    },
+    "allow_unlisted_assets": {
+      "const": false
+    },
+    "allow_third_party_capital": {
+      "const": false
+    }
+  }
+}
