@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { readJson, readText, denyTest, clone, ROOT, tempDir, writeFiles } from '../helpers.mjs';
+import { readJson, readText, denyTest, clone, ROOT, tempDir, writeFiles, makeNonRegularEntry } from '../helpers.mjs';
 import { checkTrustZones, checkCapitalPolicy, checkSignerCapabilityGroups, checkRepoTree, collectTree, loadRules, parseRules, REQUIRED_PROHIBITIONS, REQUIRED_TREE_COVERAGE } from '../../src/contracts/trust-zone-checker.mjs';
 
 const Z = () => readJson('contracts', 'trust-zones.json');
@@ -78,7 +78,7 @@ test('checker: code-file scan covers every code file outside tests/, is case-ins
   rejects(treeOf({ 'tools/x.ts': 'export function promoteStrategy() {}\n' }), 'SELF_PROMOTION', 'promotion in tools/');
   rejects(treeOf({ 'bin/w.js': "require('fs').writeFileSync('a','b')\n" }), 'RUNTIME_SOURCE_MUTATION', 'file write in bin/');
   const dir = writeFiles(tempDir(), { 'lib/ok.mjs': 'export const x = 1;\n' });
-  fs.symlinkSync('/etc/hostname', path.join(dir, 'lib', 'link.mjs'));
+  makeNonRegularEntry(path.join(dir, 'lib', 'link.mjs'));
   rejects(checkRepoTree(collectTree(dir)), 'RUNTIME_SOURCE_MUTATION', 'symlinked code file outside src/');
   // tests/ holds intentional violating fixtures and is not scanned
   assert.equal(treeOf({ 'tests/fixture.mjs': 'export const privateKey = 1;\n' }).ok, true);
@@ -246,7 +246,7 @@ denyTest('DENY-GLOBAL-RUNTIME-SOURCE-MUTATION', () => {
   rejects(treeOf({ 'src/m.mjs': "export const r = (fs) => fs.renameSync('a', 'b');\n" }), k, 'src renames a file');
   const dir = tempDir();
   writeFiles(dir, { 'src/real.mjs': 'export const x = 1;\n' });
-  fs.symlinkSync('/etc/hostname', path.join(dir, 'src', 'link.mjs'));
+  makeNonRegularEntry(path.join(dir, 'src', 'link.mjs'));
   rejects(checkRepoTree(collectTree(dir)), k, 'non-regular file in src is unscannable and rejected');
   assert.match(readText('AGENTS.md'), /mutate live source/);
 });

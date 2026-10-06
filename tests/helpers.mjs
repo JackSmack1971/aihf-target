@@ -132,6 +132,22 @@ export function writeFiles(dir, files) {
   }
   return dir;
 }
+/**
+ * Create a non-regular entry at linkPath for "unreadable code file" fixtures.
+ * Uses a file symlink; where the OS refuses (Windows without Developer Mode:
+ * EPERM/EACCES) it falls back to a directory junction, which needs no
+ * privilege and is equally non-regular to collectTree. Never skips.
+ */
+export function makeNonRegularEntry(linkPath) {
+  try {
+    fs.symlinkSync('/etc/hostname', linkPath);
+  } catch (err) {
+    if (err.code !== 'EPERM' && err.code !== 'EACCES') throw err;
+    fs.symlinkSync(fs.mkdtempSync(path.join(os.tmpdir(), 'aihf-junction-')), linkPath, 'junction');
+  }
+  const st = fs.lstatSync(linkPath);
+  if (st.isFile()) throw new Error(`fixture is a regular file: ${linkPath}`);
+}
 
 /** Repository-level violations for a directory tree (used on the real repo and on temp fixtures). */
 export function repoViolations(dir) {
