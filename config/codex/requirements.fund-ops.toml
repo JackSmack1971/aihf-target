@@ -1,0 +1,55 @@
+# Managed Codex requirements for the fund-ops runtime. Generated against codex-cli 0.160.1 documented keys
+# (builder-state/evidence/P1-S1/docs-evidence.md). Canonical system locations:
+#   Windows: %ProgramData%\OpenAI\Codex\requirements.toml
+#   Unix:    /etc/codex/requirements.toml
+# This file is machine-wide where installed: install it only on the isolated fund-ops runtime/host (decision OD-1).
+# It is a configuration-layer control only. It is NOT the live-capital boundary and does not replace the
+# deterministic authorization plane or the OS/ACL boundary (later Phase 1 slices).
+
+# Permission profiles: only the built-in read-only profile; full access is denied because it is omitted.
+default_permissions = ":read-only"
+
+# Dual pin (docs D9): if a user/CLI sandbox_mode selects the legacy sandbox path, full access is intended to remain denied (documented behavior; live enforcement not yet verified).
+allowed_sandbox_modes = ["read-only"]
+
+# User-supervised approvals only; a model reviewer may never approve its own session's escalation.
+allowed_approval_policies = ["on-request"]
+allowed_approvals_reviewers = ["user"]
+
+# No live web retrieval (prompt-injection and exfiltration surface); the cached index only.
+allowed_web_search_modes = ["cached"]
+
+# Skip user, project, session and plugin hooks (hooks run commands outside the sandbox).
+allow_managed_hooks_only = true
+
+# No generic browser or computer control in v1 ops.
+allow_browser_and_computer_use = false
+
+[allowed_permission_profiles]
+":read-only" = true
+
+# Apps/connectors, plugins and browser/computer surfaces are outside the approved v1 surface.
+[features]
+apps = false
+plugins = false
+remote_plugin = false
+browser_use = false
+browser_use_external = false
+browser_use_full_cdp_access = false
+computer_use = false
+in_app_browser = false
+
+# Native Windows: the elevated sandbox is the strongest implementation; the unelevated fallback cannot
+# enforce every carve-out. Ignored on non-Windows hosts.
+[windows]
+allowed_sandbox_implementations = ["elevated"]
+
+# MCP server identity allowlist. Present and EMPTY: per the docs (D14) the runtime then disables every MCP server (documented; live behavior not yet verified).
+# An identity is added here only by a reviewed change, together with a matching fund-ops profile entry
+# that carries a non-empty enabled_tools list (docs D15). Required identity form (checked by tests):
+#   [mcp_servers.<server-id>.identity.command]
+#   executable = "<absolute path>"
+#   args = [ { match = "exact", value = "<arg>" } ]
+# or an exact HTTPS url. Never a bare-string command, prefix or regex match, and never the unrestricted
+# Co-Invest Computer/Main/Restricted endpoint (use the local read-only proxy once Phase 2 grounds it).
+[mcp_servers]

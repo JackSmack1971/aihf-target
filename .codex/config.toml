@@ -1,0 +1,6 @@
+# Reviewed Phase 1 project surface: shared multi-agent limits only (blueprint section 6).
+# Never set approval, sandbox, permission, MCP, feature, hook, rule or profile keys here: project config
+# outranks user profile files, so those are governed by managed requirements (config/codex/).
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4

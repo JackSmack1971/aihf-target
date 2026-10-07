@@ -49,7 +49,8 @@ The registry `contracts/forbidden-capabilities.json` lists every forbidden capab
 
 - Never create `AGENTS.override.md` anywhere in this repository.
 - Nested `AGENTS.md` files may only add stricter rules. They must never relax, replace, or contradict this file, and none exist until a reviewed decision registers them.
-- `.codex/` configuration is Phase 1 work and does not exist yet. Do not add it early.
+- `.codex/` holds only the reviewed Phase 1 surface: `.codex/config.toml` (`[agents]` limits only) and the nine `.codex/agents/<role>.toml` role files. Do not add any other `.codex/` file (hooks, rules, skills, prompts, profiles, MCP, permission or approval settings) without a reviewed decision. Project `.codex/` config outranks user profile files, so it must never set approval, sandbox, permission, MCP, feature, hook or profile keys; those are governed by the managed requirements in `config/codex/`.
+- Codex user profiles and managed requirements live in `config/codex/` and are installed outside the repository by the operator; never install or edit machine-wide Codex policy from a session.
 - Do not add `.claude/` configuration to this repository.
 - Never commit secrets. Runtime state lives in `.runtime/` (ignored) or outside the repository.
 - Risk-policy numeric limits are REQUIRED and unset in the template. Never invent default values.
