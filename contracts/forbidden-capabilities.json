@@ -430,7 +430,7 @@
     },
     {
       "id": "EARLY_CODEX_CONFIG",
-      "description": "No .codex/ configuration before Phase 1",
+      "description": "Only the reviewed Phase 1 .codex/ surface may exist; any other .codex/ content is denied",
       "blueprint_ref": "section 33",
       "contract": "AGENTS.md",
       "denial_test": "DENY-REPO-EARLY-CODEX-CONFIG",

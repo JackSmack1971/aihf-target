@@ -1,0 +1,13 @@
+# fund-dev profile: the development plane (source, tests, backtests, Git). Install as
+# $CODEX_HOME/fund-dev.config.toml (manual operator install; see config/codex/README.md) and launch with: codex --profile fund-dev
+#
+# fund-dev holds NO production signer secret and NO production trading authority: no intent submission,
+# no riskd/traderd production endpoint, no signerd, no mainnet agent secret, no production ledger (blueprint section 5).
+# This profile is not a security boundary; the dev shell and the live runtime never share a secret-bearing process tree.
+default_permissions = ":workspace"
+approval_policy = "on-request"
+approvals_reviewer = "user"
+web_search = "cached"
+
+# MCP servers: none registered in P1-S1. The intent gateway and any signer/trader surface must never be
+# registered here (enforced by tests). Co-Invest paper validation is a separate fund-dev-only adapter (Phase 2).

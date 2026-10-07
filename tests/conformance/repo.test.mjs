@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, abs, readText, readJson, walk, denyTest, repoViolations, tempDir, writeFiles } from '../helpers.mjs';
+import { ROOT, abs, readText, readJson, walk, denyTest, repoViolations, tempDir, writeFiles, codexFiles } from '../helpers.mjs';
+import { ALLOWED_CODEX_FILES, checkProjectCodex } from '../../src/contracts/codex-config-checker.mjs';
 
 const rel = (p) => path.relative(ROOT, p);
 const files = () => walk().map(rel);
@@ -40,8 +41,28 @@ test('no nested AGENTS.md exists until registered by a reviewed decision', () =>
 });
 
 denyTest('DENY-REPO-EARLY-CODEX-CONFIG', () => {
-  assert.deepEqual(files().filter((f) => f.split(path.sep).includes('.codex')), []);
-  assert.ok(codes(fixture({ '.codex/config.toml': 'x' })).includes('CODEX_DIR'));
+  // Phase 1 migration: only the reviewed .codex surface (config.toml + nine agent files) may exist, and its content must pass the checker.
+  const realFiles = codexFiles(ROOT);
+  assert.deepEqual(Object.keys(realFiles).sort(), [...ALLOWED_CODEX_FILES].sort(), 'exact reviewed .codex file set');
+  assert.deepEqual(repoViolations(ROOT).filter((x) => x.startsWith('CODEX_DIR')), []);
+  assert.deepEqual(checkProjectCodex(realFiles), { ok: true, violations: [] }, 'positive control: the real reviewed surface');
+  const denied = (extra) => {
+    const dir = fixture(extra);
+    return repoViolations(dir).some((x) => x.startsWith('CODEX_DIR')) || !checkProjectCodex(codexFiles(dir)).ok;
+  };
+  assert.equal(denied(realFiles), false, 'positive control: a copy of the reviewed surface is accepted');
+  // any other .codex content is denied, wherever it sits
+  for (const f of ['.codex/hooks.json', '.codex/rules/default.rules', '.codex/agents/extra.toml', '.codex/skills/x/SKILL.md', '.codex/prompts/x.md',
+    '.codex/Config.toml', '.codex/agents/Data.toml', '.codex/agents/data.toml.bak', 'pkg/.codex/config.toml', 'pkg/.codex/agents/data.toml']) {
+    assert.equal(denied({ ...realFiles, [f]: 'x' }), true, f);
+  }
+  // reviewed files with unreviewed content, or missing, are denied (an arbitrary 'x' is not valid configuration)
+  assert.equal(denied({ '.codex/config.toml': 'x' }), true);
+  const cfg = ['[agents]', 'enabled = true', 'max_concurrent_threads_per_session = 4', 'sandbox_mode = "danger-full-access"', ''].join('\n');
+  assert.equal(denied({ ...realFiles, '.codex/config.toml': cfg }), true);
+  const missing = { ...realFiles };
+  delete missing['.codex/agents/risk.toml'];
+  assert.equal(denied(missing), true, 'a missing role file is denied');
 });
 
 denyTest('DENY-REPO-CLAUDE-CONFIG', () => {

@@ -1,0 +1,25 @@
+# fund-ops profile: the constrained operational reasoning plane. Install as $CODEX_HOME/fund-ops.config.toml
+# (manual operator install; see config/codex/README.md) and launch explicitly with: codex --profile fund-ops
+# Never copy this file into the repository's .codex/ directory.
+#
+# DEFAULTS ONLY. Profile files rank below project and CLI configuration, so this file is not a security
+# boundary. Enforcement comes from the managed requirements (requirements.fund-ops.toml) and, later, OS ACLs.
+# The values below mirror those requirements so that the profile is also restrictive on its own.
+default_permissions = ":read-only"
+approval_policy = "on-request"
+approvals_reviewer = "user"
+web_search = "cached"
+
+[features]
+apps = false
+plugins = false
+remote_plugin = false
+browser_use = false
+browser_use_external = false
+browser_use_full_cdp_access = false
+computer_use = false
+in_app_browser = false
+
+# MCP servers: none are registered in P1-S1. Phase 2 adds each reviewed server together with its managed
+# identity (requirements.fund-ops.toml) and a non-empty enabled_tools list drawn from contracts/mcp-surface.json.
+# A server entry without enabled_tools exposes ALL of its tools (verified live), so it is forbidden by tests.

@@ -4,6 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { validate } from '../src/contracts/schema-validator.mjs';
+import { ALLOWED_CODEX_FILES } from '../src/contracts/codex-config-checker.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const abs = (...p) => path.join(ROOT, ...p);
@@ -89,6 +90,8 @@ export const SRC_IMPORT_ALLOWLIST = {
   'trust-zone-checker.mjs': ['node:fs', 'node:path'],
   'safe-state-mapping.mjs': [],
   'mcp-surface-checker.mjs': [],
+  'toml-subset.mjs': [],
+  'codex-config-checker.mjs': [],
 };
 
 /** Flags dynamic import(), require(, eval-like constructs and any import specifier outside `allowed`. */
@@ -149,6 +152,19 @@ export function makeNonRegularEntry(linkPath) {
   if (st.isFile()) throw new Error(`fixture is a regular file: ${linkPath}`);
 }
 
+const CODEX_DIRS = new Set(['.codex', '.codex/agents']);
+
+/** Map of repo-relative POSIX path -> text for every regular file under a top-level .codex/ directory of `dir`. */
+export function codexFiles(dir) {
+  const out = {};
+  const root = path.join(dir, '.codex');
+  if (!fs.existsSync(root)) return out;
+  for (const p of walk(root)) {
+    if (fs.lstatSync(p).isFile()) out[path.relative(dir, p).split(path.sep).join('/')] = fs.readFileSync(p, 'utf8');
+  }
+  return out;
+}
+
 /** Repository-level violations for a directory tree (used on the real repo and on temp fixtures). */
 export function repoViolations(dir) {
   const v = [];
@@ -166,7 +182,8 @@ export function repoViolations(dir) {
     const base = path.basename(r);
     if (base.toLowerCase() === 'agents.override.md') v.push(`AGENTS_OVERRIDE:${r}`);
     if (base.toLowerCase() === 'agents.md' && r !== 'AGENTS.md') v.push(`NESTED_AGENTS:${r}`);
-    if (parts.includes('.codex')) v.push(`CODEX_DIR:${r}`);
+    // Phase 1: only the reviewed .codex surface may exist; any other .codex path is denied (content is checked by checkProjectCodex).
+    if (parts.includes('.codex') && !CODEX_DIRS.has(r.split(path.sep).join('/')) && !ALLOWED_CODEX_FILES.includes(r.split(path.sep).join('/'))) v.push(`CODEX_DIR:${r}`);
     if (parts.includes('.claude') || /^claude\.md$/i.test(base)) v.push(`CLAUDE_CONFIG:${r}`);
     if (/\.(key|pem|p12|pfx)$/i.test(base) || /^\.env/.test(base) || parts[0] === 'secrets' || parts[0] === '.runtime') v.push(`SECRET_FILE:${r}`);
   }
