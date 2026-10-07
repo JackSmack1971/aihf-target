@@ -92,6 +92,7 @@ export const SRC_IMPORT_ALLOWLIST = {
   'mcp-surface-checker.mjs': [],
   'toml-subset.mjs': [],
   'codex-config-checker.mjs': [],
+  'ops-layout-checker.mjs': [],
 };
 
 /** Flags dynamic import(), require(, eval-like constructs and any import specifier outside `allowed`. */

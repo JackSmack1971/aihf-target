@@ -712,6 +712,24 @@
       "enforcement": "enforced",
       "enforced_in_phase": 0,
       "runtime_enforced_in_phase": 8
+    },
+    {
+      "id": "OPS_RUNTIME_BOUNDARY",
+      "description": "The fund-ops OS identity cannot modify managed Codex policy, the activated release or the toolchain; mutable runtime state is separated and Windows interoperability routes are off",
+      "blueprint_ref": "sections 5 and 33",
+      "contract": "contracts/ops-runtime-layout.json",
+      "denial_test": "DENY-OPS-RUNTIME-BOUNDARY",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
+    },
+    {
+      "id": "OPS_PROVISION_ISOLATION",
+      "description": "Privileged host provisioning artifacts exist only at the pinned ops/provision paths and are never referenced, imported or invoked by runtime or model-facing code",
+      "blueprint_ref": "sections 5 and 33",
+      "contract": "contracts/phase0-checker-rules.json",
+      "denial_test": "DENY-OPS-PROVISION-ISOLATION",
+      "enforcement": "enforced",
+      "enforced_in_phase": 0
     }
   ]
 }

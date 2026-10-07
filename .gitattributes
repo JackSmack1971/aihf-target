@@ -1,0 +1,4 @@
+# Byte-stable files: shell scripts and hash-pinned artifacts must keep LF endings on every checkout (core.autocrlf would otherwise break bash and the pinned hashes).
+ops/provision/** text eol=lf
+config/codex/*.toml text eol=lf
+contracts/ops-runtime-layout.json text eol=lf

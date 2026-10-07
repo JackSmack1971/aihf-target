@@ -30,7 +30,7 @@ export const REQUIRED_PROHIBITIONS = Object.freeze([
 export const REQUIRED_TREE_COVERAGE = Object.freeze([
   KEY, EXCHANGE, SIGNER, CAPITAL, 'API_WALLET_MANAGEMENT', CUSTODY_CHANGE, 'RUNTIME_SOURCE_MUTATION',
   'AUTONOMOUS_DEPLOYMENT', 'SELF_PROMOTION', 'COINVEST_LIVE_EXECUTION',
-  ...Object.values(ZONE5_FALSE), 'OPS_MODE_GIT_WRITES', 'COINVEST_PAPER_WRITES', 'OPS_COINVEST_DIRECT_ENDPOINT',
+  ...Object.values(ZONE5_FALSE), 'OPS_MODE_GIT_WRITES', 'COINVEST_PAPER_WRITES', 'OPS_COINVEST_DIRECT_ENDPOINT', 'OPS_PROVISION_ISOLATION',
 ]);
 export const REQUIRED_SIGNER_GROUPS = Object.freeze(['API_WALLET_MANAGEMENT', CUSTODY_CHANGE, SIGNER]);
 
@@ -196,10 +196,27 @@ export function collectTree(dir) {
   return entries;
 }
 
+// ---- the pinned provisioning directory: the SOLE repository location for human-run privileged host provisioning artifacts (decision D-0007).
+// The exemption is deliberately tiny: exact pinned file paths, and only the two capabilities listed below. Everything else (shell/network/
+// file-write/deploy/key rules, the deploy* path rule) still applies to these files, and an equivalent privileged script anywhere else is rejected.
+// Adding a file to the pinned provisioning directory requires editing this pinned list (review-visible) and its tests.
+const OPS_ISOLATION = 'OPS_PROVISION_ISOLATION';
+const OPS_DIR = ['ops', 'provision'].join('/');
+export const OPS_PROVISION_FILES = Object.freeze([
+  'README.md', 'canonical-artifacts.sha256', 'wsl.conf.fund-ops', ...['layout', 'provision', 'validate', 'verify'].map((n) => `fund-ops-${n}.sh`),
+].map((f) => `${OPS_DIR}/${f}`));
+const OPS_PROVISION_EXEMPT = Object.freeze(new Set(['ZONE_SIGNING_FILESYSTEM_ESCAPE', OPS_ISOLATION]));
+const OPS_TOP = /^ops(\/|$)/i;
+
 /** Static tripwire over repo paths, src/ text and package.json scripts. */
 export function checkRepoTree(entries, rules = loadRules()) {
   const out = [];
   for (const e of entries) {
+    // anything under ops/ other than the pinned provisioning directory and files is rejected
+    if (OPS_TOP.test(e.path) && e.path !== 'ops' && e.path !== OPS_DIR && !OPS_PROVISION_FILES.includes(e.path)) {
+      out.push(V(OPS_ISOLATION, `${e.path}: only the pinned files under ${OPS_DIR} may exist beneath ops/`));
+    }
+    const pinnedProvision = OPS_PROVISION_FILES.includes(e.path);
     const inCode = isCodePath(e.path) && e.text !== undefined;
     if (inCode && typeof e.text !== 'string') out.push(V('RUNTIME_SOURCE_MUTATION', `${e.path}: unreadable or non-regular code file`));
     let scripts = null;
@@ -207,6 +224,7 @@ export function checkRepoTree(entries, rules = loadRules()) {
       try { scripts = JSON.stringify(JSON.parse(e.text).scripts ?? {}); } catch { out.push(V('AUTONOMOUS_DEPLOYMENT', 'package.json is not valid JSON')); }
     }
     for (const r of rules.tree_rules) {
+      if (pinnedProvision && r.scope === 'code' && OPS_PROVISION_EXEMPT.has(r.capability)) continue;
       const subject = r.scope === 'path' ? e.path : r.scope === 'code' ? (inCode ? e.text : null) : (scripts);
       if (typeof subject === 'string' && r.re.test(subject)) out.push(V(r.capability, `${e.path}: ${r.description}`));
     }

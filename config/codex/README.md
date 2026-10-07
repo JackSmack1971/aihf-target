@@ -18,18 +18,15 @@ The project `.codex/` directory (config + nine role files) is separate and ships
 - Not provided here (later Phase 1 slices): read-only release ACLs, `riskd`/`traderd`/`signerd` service identities, `fundctl`, outbound-network policy for the Codex process, protection of the operator's Codex home (`.rules` allow entries, writable config).
 - MCP: identity authorization (managed `[mcp_servers]`, currently empty = all MCP disabled) is separate from per-tool exposure (`enabled_tools` in the profile). Codex has no managed `enabled_tools`; an approved server must itself enforce its closed tool surface (blueprint section 9).
 
-## Installation is a deliberate operator action
+## Installation is a deliberate operator action (Phase 1, P1-S2)
 
-Nothing in this repository installs these files. A session must never write machine-wide Codex policy. To install on a fund-ops runtime:
+The canonical fund-ops runtime is a DEDICATED WSL2 Ubuntu distro (decision OD-1, D-0007); the requirements file is machine-wide for that distro, so it is never installed on a developer workstation. Nothing in the test suite installs anything. The reviewed provisioning path is `ops/provision/` (see its README and `docs/ops-runtime.md`):
 
-1. Use an isolated runtime/host for fund-ops: the system requirements file is machine-wide, so every Codex user on that machine is bound by it (open decision OD-1). Do not install it on a developer workstation that must keep `fund-dev` working.
-2. Review the diff and record the SHA-256 (line endings normalized to LF):
+1. `fund-ops-validate.sh` checks the pinned SHA-256 of the requirements, profile, WSL template and layout contract (no mutation).
+2. `fund-ops-provision.sh plan|apply` creates the unprivileged `aihf-ops` identity, the root-owned toolchain/release/launcher, installs `/etc/codex/requirements.toml` byte-for-byte from the pinned artifact (refusing to replace a different file silently), pre-creates the protected Codex-home surface and installs the profile as `$CODEX_HOME/fund-ops.config.toml`.
+3. `fund-ops-verify.sh` verifies the installed state and attempts the forbidden writes as the real ops identity.
 
-       node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('config/codex/requirements.fund-ops.toml','utf8').replace(/\r\n/g,'\n')).digest('hex'))"
-
-3. As an administrator, copy the file to the system location above, keep it administrator-owned and not writable by the fund-ops OS account, and record who/when/hash in the operator log.
-4. Copy the two profile files into the fund-ops / fund-dev account's `$CODEX_HOME`.
-5. Verify (below). Rollback is deleting the system file and the profile copies.
+The pinned hash lives in `ops/provision/canonical-artifacts.sha256`; changing the requirements or profile requires updating the pin in the same reviewed diff. Rollback is re-provisioning a previous release id and, for the requirements, an explicit `--replace-requirements` after reviewing the printed diff.
 
 ## Verification
 
@@ -49,9 +46,11 @@ Live (installed Codex; no model call; scratch `CODEX_HOME`; never touches the re
 2. Add its managed identity to `requirements.fund-ops.toml` (structured exact `executable` + `args`, or an exact URL; never a bare command string, prefix or regex) and the matching entry with a non-empty `enabled_tools` to `fund-ops.config.toml`.
 3. `node --test` must pass; then re-run both live managed passes.
 
-## Open decisions (not decided here)
+## Open decisions
 
-- OD-1 isolated runtime for fund-ops (machine-wide requirements on Windows).
-- OD-2 location of fund-ops scratch compute (`:read-only` grants no writes).
-- OD-3 unattended `never` approvals for fund-ops.
+- OD-1 RESOLVED (D-0007): dedicated WSL2 Ubuntu distro.
+- OD-2 RESOLVED (D-0007): scratch compute is `/var/lib/aihf/runtime/scratch` (OS-bounded, ops-owned); the `:read-only` Codex profile is NOT widened to write it. A managed custom profile that grants it is a later reviewed change.
+- OD-3 unattended `never` approvals for fund-ops: still unresolved; `never` stays disallowed by the requirements.
 - OD-4 per-role MCP narrowing for the nine agents (needs Phase 2 server definitions).
+- OD-5 production Windows-account separation for the fund-ops distro (see `docs/ops-runtime.md` R1).
+- OD-6 Codex credential storage mode for fund-ops (`cli_auth_credentials_store`).
