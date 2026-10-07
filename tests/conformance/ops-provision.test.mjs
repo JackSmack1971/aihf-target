@@ -187,9 +187,6 @@ test('ops provision: scripts are syntactically valid bash, narrow, and contain n
     const t = sh(f);
     assert.deepEqual(scriptProblems(f, t), [], f);
     assert.ok(!t.includes('\r'), `${f} must keep LF endings`);
-    const bash = spawnSync('bash', ['-n', abs('ops', 'provision', f)], { encoding: 'utf8' });
-    if (bash.error) continue; // bash unavailable on this host: syntax check skipped (covered where bash exists)
-    assert.equal(bash.status, 0, `${f}: ${bash.stderr}`);
   }
   // deliberate negatives: the assertion function itself rejects each hazard
   const base = 'set -euo pipefail\n';
@@ -198,6 +195,17 @@ test('ops provision: scripts are syntactically valid bash, narrow, and contain n
     assert.ok(scriptProblems('x.sh', `${base}${bad}\n`).includes(why), `${bad} -> ${why}`);
   }
   assert.ok(scriptProblems('x.sh', '#!/bin/bash\necho hi\n').includes('no nounset'));
+});
+
+// bash -n is never run on Windows: `bash` on a Windows PATH can be the WSL launcher, which would start the operator's DEFAULT distro (possibly their real one)
+// with a mangled path. It is an explicit SKIP there (UNVERIFIED by this suite), never a silent pass; a missing bash elsewhere is a failure, not a pass.
+const BASH_SKIP = process.platform === 'win32' ? 'UNVERIFIED on Windows: PATH bash may be the WSL launcher (would boot the default distro); syntax is verified under WSL by the provisioning proof' : false;
+test('ops provision: scripts are syntactically valid bash (bash -n)', { skip: BASH_SKIP }, () => {
+  for (const f of ['fund-ops-layout.sh', 'fund-ops-validate.sh', 'fund-ops-provision.sh', 'fund-ops-verify.sh']) {
+    const r = spawnSync('bash', ['-n', abs('ops', 'provision', f)], { encoding: 'utf8' });
+    assert.ifError(r.error);
+    assert.equal(r.status, 0, `${f}: ${r.stderr}`);
+  }
 });
 
 test('ops provision: provisioner is plan-by-default, root-gated, refuses silent policy replacement and Windows-mount sources', () => {
