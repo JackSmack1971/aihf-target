@@ -1,0 +1,18 @@
+# /etc/wsl.conf for the DEDICATED fund-ops WSL2 distro (installed by fund-ops-provision.sh --configure-wsl; takes effect after `wsl --terminate <distro>`).
+# These settings are per distro, not per user: that is why fund-ops needs its own distro (decision OD-1).
+# They remove the WSL interoperability routes into the Windows host. They do not make WSL an impregnable boundary.
+[boot]
+systemd = true
+
+[automount]
+# No /mnt/c: the developer checkout, host credential directories and Windows executables are not visible from this distro.
+enabled = false
+
+[interop]
+# No launching Windows executables from Linux processes.
+enabled = false
+appendWindowsPath = false
+
+[user]
+# Interactive sessions start as the unprivileged ops identity; administration uses an explicit root session from the Windows operator account.
+default = aihf-ops

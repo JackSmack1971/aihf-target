@@ -1,0 +1,4 @@
+40ddf2cf222c1b8a2d1e2ef23c4cf6d44c7cab74b33e9183636bd7e4ce3aad72  config/codex/requirements.fund-ops.toml
+e2f548b7840b3338d5ee235f8f644831804d1f2917051841f85ad5082916c621  config/codex/fund-ops.config.toml
+915ff5399a4d1bf2f9d54d3e186dadb8ef3f37b69cc083f2e250587f9f005d44  ops/provision/wsl.conf.fund-ops
+58a948f8e9f0d5ee1dddc21c49f25b4d35c9e9db56ea81c352c709877fefd10a  contracts/ops-runtime-layout.json

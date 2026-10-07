@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "note": "Canonical OS layout of the isolated fund-ops runtime (Phase 1, slice P1-S2; decisions D-0007). ops/provision/fund-ops-layout.sh mirrors these values and tests/conformance/ops-provision.test.mjs enforces parity. src/contracts/ops-layout-checker.mjs pins the invariants. The security properties come from managed Codex requirements, Unix identities and ownership, a root-owned release, and the absence of Windows interop, not from WSL itself. The ops HOME is sticky and root-owned like the Codex home because documented user skill roots live under HOME. No service identity (riskd, traderd, signerd) and no secret path exists in this slice.",
+  "runtime": {
+    "platform": "wsl2-ubuntu-dedicated-distro",
+    "codex_version_pin": "0.160.1",
+    "requirements_path": "/etc/codex/requirements.toml",
+    "release_root": "/opt/aihf/releases",
+    "release_current": "/opt/aihf/current",
+    "toolchain_codex_bin": "/opt/aihf/toolchain/codex/bin/codex",
+    "launcher": "/opt/aihf/bin/fund-ops",
+    "launcher_path_env": "/usr/bin:/bin",
+    "launcher_env_allowlist": [
+      "CODEX_HOME",
+      "HOME",
+      "LANG",
+      "PATH",
+      "TERM"
+    ],
+    "runtime_state_root": "/var/lib/aihf/runtime",
+    "ops_home": "/var/lib/aihf/ops/home",
+    "codex_home": "/var/lib/aihf/ops/codex-home",
+    "scratch": "/var/lib/aihf/runtime/scratch",
+    "state": "/var/lib/aihf/runtime/state"
+  },
+  "identities": [
+    {
+      "id": "ops",
+      "user": "aihf-ops",
+      "group": "aihf-ops",
+      "home": "/var/lib/aihf/ops/home",
+      "shell": "/bin/bash",
+      "system_account": true,
+      "password": "locked",
+      "sudo": false,
+      "supplementary_groups": []
+    }
+  ],
+  "entries": [
+    {
+      "path": "/etc/codex",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "managed_policy"
+    },
+    {
+      "path": "/etc/codex/requirements.toml",
+      "type": "file",
+      "owner": "root",
+      "group": "root",
+      "mode": "0644",
+      "role": "managed_policy"
+    },
+    {
+      "path": "/opt/aihf",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "release"
+    },
+    {
+      "path": "/opt/aihf/toolchain",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "toolchain"
+    },
+    {
+      "path": "/opt/aihf/toolchain/codex",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "toolchain"
+    },
+    {
+      "path": "/opt/aihf/bin",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "toolchain"
+    },
+    {
+      "path": "/opt/aihf/bin/fund-ops",
+      "type": "file",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "toolchain"
+    },
+    {
+      "path": "/opt/aihf/releases",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "release"
+    },
+    {
+      "path": "/opt/aihf/current",
+      "type": "symlink",
+      "owner": "root",
+      "group": "root",
+      "mode": "0777",
+      "role": "release"
+    },
+    {
+      "path": "/var/lib/aihf",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "state_parent"
+    },
+    {
+      "path": "/var/lib/aihf/ops",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "state_parent"
+    },
+    {
+      "path": "/var/lib/aihf/ops/home",
+      "type": "dir",
+      "owner": "root",
+      "group": "aihf-ops",
+      "mode": "1770",
+      "role": "sticky_home"
+    },
+    {
+      "path": "/var/lib/aihf/ops/codex-home",
+      "type": "dir",
+      "owner": "root",
+      "group": "aihf-ops",
+      "mode": "1770",
+      "role": "codex_home"
+    },
+    {
+      "path": "/var/lib/aihf/runtime",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "state_parent"
+    },
+    {
+      "path": "/var/lib/aihf/runtime/scratch",
+      "type": "dir",
+      "owner": "aihf-ops",
+      "group": "aihf-ops",
+      "mode": "0700",
+      "role": "ops_writable"
+    },
+    {
+      "path": "/var/lib/aihf/runtime/state",
+      "type": "dir",
+      "owner": "aihf-ops",
+      "group": "aihf-ops",
+      "mode": "0700",
+      "role": "ops_writable"
+    }
+  ],
+  "codex_home_protected": [
+    {
+      "name": "config.toml",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": "fund-ops.config.toml",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": "hooks.json",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": "AGENTS.md",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": "AGENTS.override.md",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": "rules",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": "skills",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": "agents",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": "prompts",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": "plugins",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": ".env",
+      "type": "file",
+      "mode": "0644"
+    }
+  ],
+  "ops_home_protected": [
+    {
+      "name": ".agents",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": ".codex",
+      "type": "dir",
+      "mode": "0755"
+    },
+    {
+      "name": ".bashrc",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": ".profile",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": ".bash_profile",
+      "type": "file",
+      "mode": "0644"
+    },
+    {
+      "name": ".bash_login",
+      "type": "file",
+      "mode": "0644"
+    }
+  ],
+  "wsl": {
+    "automount_enabled": false,
+    "interop_enabled": false,
+    "append_windows_path": false,
+    "default_user": "aihf-ops",
+    "systemd": true
+  }
+}

@@ -230,6 +230,20 @@
       "pattern": "[Cc]o[-_ ]?[Ii]nvest[\\w\\s-]{0,20}([Dd]irect|[Ee]ndpoint|[Bb]aseUrl|[Aa]pi[Uu]rl)",
       "flags": "",
       "description": "code outside tests/ must not define a direct Co-Invest endpoint"
+    },
+    {
+      "capability": "OPS_PROVISION_ISOLATION",
+      "scope": "code",
+      "pattern": "ops[/\\\\]+provision|fund-ops-(provision|verify|validate|layout)\\.sh",
+      "flags": "",
+      "description": "code outside tests/ and outside the pinned ops/provision files must not reference, import or invoke the human-run privileged provisioning artifacts"
+    },
+    {
+      "capability": "OPS_PROVISION_ISOLATION",
+      "scope": "package_json",
+      "pattern": "ops[/\\\\]+provision|fund-ops-(provision|verify|validate|layout)\\.sh",
+      "flags": "",
+      "description": "package.json scripts must not invoke the human-run privileged provisioning artifacts"
     }
   ]
 }
