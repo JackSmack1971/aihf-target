@@ -2,3 +2,4 @@
 ops/provision/** text eol=lf
 config/codex/*.toml text eol=lf
 contracts/ops-runtime-layout.json text eol=lf
+.codex/** text eol=lf

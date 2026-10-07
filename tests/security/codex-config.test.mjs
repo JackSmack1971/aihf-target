@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { readText, codexFiles, ROOT } from '../helpers.mjs';
 import { parseToml } from '../../src/contracts/toml-subset.mjs';
 import {
@@ -20,6 +22,10 @@ const swapLine = (t, key, to) => {
   assert.ok(re.test(t), `fixture line missing: ${key}`);
   return t.replace(re, () => to);
 };
+// Remove one whole top-level `key = ...` line under either LF or CRLF (`.` never matches a carriage return, so the EOL is matched explicitly).
+const dropLine = (t, key) => t.replace(new RegExp(`^${key} = .*(?:\r?\n|$)`, 'm'), '');
+const toLF = (t) => t.replace(/\r\n/g, '\n');
+const toCRLF = (t) => toLF(t).replace(/\n/g, '\r\n');
 const add = (t, extra) => `${t}\n${extra}\n`;
 const capsOf = (r) => [...new Set(r.violations.map((v) => v.capability))];
 function rejects(r, cap, label) {
@@ -227,6 +233,30 @@ const tomlString = (s) => `"""\n${s}\n"""`;
 const rebuild = (role, instructions) => `name = "${role}"\ndescription = "d${'x'.repeat(20)}"\ndeveloper_instructions = ${tomlString(instructions)}\n`;
 const instr = (role) => agentDoc(role).developer_instructions;
 
+test('agents: required-field removal is rejected under LF and CRLF input, and the real files pass under both', () => {
+  const base = AGENT('risk');
+  for (const [eol, conv] of [['LF', toLF], ['CRLF', toCRLF]]) {
+    const b = conv(base);
+    assert.equal(b.includes('\r'), eol === 'CRLF', `${eol} fixture has the intended line endings`);
+    accepts(checkProjectCodex(withAgent('risk', b)), `${eol} positive control`);
+    for (const key of ['description', 'name']) {
+      const m = dropLine(b, key);
+      assert.notEqual(m, b, `${eol}: ${key} line was actually removed`);
+      rejects(checkProjectCodex(withAgent('risk', m)), AG, `${eol}: ${key} missing`);
+    }
+  }
+  for (const role of AGENT_ROLES) {
+    accepts(checkProjectCodex(withAgent(role, toLF(AGENT(role)))), `${role} LF`);
+    accepts(checkProjectCodex(withAgent(role, toCRLF(AGENT(role)))), `${role} CRLF`);
+  }
+});
+
+test('gitattributes: .codex/** is pinned to LF and no blanket line-ending rule exists', () => {
+  const rules = readFileSync(join(ROOT, '.gitattributes'), 'utf8').split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith('#'));
+  assert.ok(rules.some((l) => l.split(/\s+/).join(' ') === '.codex/** text eol=lf'), '.codex/** text eol=lf present');
+  assert.ok(!rules.some((l) => /^\*(\s|$)/.test(l)), 'no repository-wide `*` attribute rule');
+});
+
 test('agents: extra keys (sandbox, MCP, model, permissions, approvals, features, hooks, skills) are rejected', () => {
   accepts(checkProjectCodex(real()), 'positive control');
   const base = AGENT('risk');
@@ -236,8 +266,8 @@ test('agents: extra keys (sandbox, MCP, model, permissions, approvals, features,
   rejects(checkProjectCodex(withAgent('risk', `${base}\n[mcp_servers.x]\ncommand = "x"`)), AG, 'mcp_servers table');
   rejects(checkProjectCodex(withAgent('risk', `${base}\n[permissions.x]\nextends = ":workspace"`)), AG, 'permissions table');
   rejects(checkProjectCodex(withAgent('risk', swap(base, 'name = "risk"', 'name = "other"'))), AG, 'name differs from file');
-  rejects(checkProjectCodex(withAgent('risk', base.replace(/^description = .*\n/m, ''))), AG, 'description missing');
-  rejects(checkProjectCodex(withAgent('risk', base.replace(/^name = .*\n/m, ''))), AG, 'name missing');
+  rejects(checkProjectCodex(withAgent('risk', dropLine(base, 'description'))), AG, 'description missing');
+  rejects(checkProjectCodex(withAgent('risk', dropLine(base, 'name'))), AG, 'name missing');
   rejects(checkProjectCodex(withAgent('risk', `name = "risk"\ndescription = "${'x'.repeat(301)}"\ndeveloper_instructions = ${tomlString(instr('risk'))}\n`)), AG, 'long description');
   rejects(checkProjectCodex(withAgent('risk', rebuild('risk', 'x'.repeat(3001)))), AG, 'oversized instructions');
   rejects(checkProjectCodex(withAgent('risk', 'name = "risk"')), AG, 'incomplete file');
