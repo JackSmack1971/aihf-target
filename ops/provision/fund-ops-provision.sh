@@ -55,8 +55,11 @@ if [ "$APPLY" -eq 1 ]; then
   [ "$(sha256sum "$CODEX_SRC/bin/codex" | cut -d' ' -f1)" = "$AIHF_CODEX_SHA256" ] || die "the Codex binary differs from the pinned SHA-256 (it is not executed as root until it matches)"
   [ "$("$CODEX_SRC/bin/codex" --version 2>/dev/null)" = "codex-cli $AIHF_CODEX_PIN" ] || die "Codex version differs from the pin $AIHF_CODEX_PIN"
   # a running ops process could race the replacement of protected names: refuse (stop the distro and provision from a fresh start)
-  pgrep -u "$AIHF_OPS_USER" >/dev/null 2>&1 && pg=0 || pg=$?
-  [ "$pg" -eq 1 ] || die "processes of $AIHF_OPS_USER are running or could not be checked (pgrep exit $pg); run 'wsl --terminate <distro>' and provision from a fresh start"
+  # (an account that does not exist yet owns no processes, and pgrep exits 2 for an unknown user name, so only check an existing account)
+  if getent passwd "$AIHF_OPS_USER" >/dev/null; then
+    pgrep -u "$AIHF_OPS_USER" >/dev/null 2>&1 && pg=0 || pg=$?
+    [ "$pg" -eq 1 ] || die "processes of $AIHF_OPS_USER are running or could not be checked (pgrep exit $pg); run 'wsl --terminate <distro>' and provision from a fresh start"
+  fi
   if [ -n "$NODE_SRC" ]; then [ -x "$NODE_SRC/bin/node" ] || die "--node-dir must contain bin/node"; fi
 fi
 
