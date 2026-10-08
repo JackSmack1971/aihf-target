@@ -3,3 +3,6 @@ ops/provision/** text eol=lf
 config/codex/*.toml text eol=lf
 contracts/ops-runtime-layout.json text eol=lf
 .codex/** text eol=lf
+
+# fundctl is a byte-stable root-only script: LF endings on every checkout (its SHA-256 is pinned).
+ops/fundctl/fundctl text eol=lf

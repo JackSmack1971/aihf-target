@@ -23,8 +23,23 @@ AIHF_RUNTIME_ROOT="/var/lib/aihf/runtime"
 AIHF_SCRATCH="/var/lib/aihf/runtime/scratch"
 AIHF_STATE="/var/lib/aihf/runtime/state"
 AIHF_CODEX_HOME="/var/lib/aihf/ops/codex-home"
+AIHF_SERVICE_SHELL="/usr/sbin/nologin"
+AIHF_SIGNER_SECRET_DIR="/var/lib/aihf/signerd/secrets"
+AIHF_SIGNER_SENTINEL="/var/lib/aihf/signerd/secrets/sentinel"
+# Fixed NON-SECRET marker written to the sentinel file. It is not, and must never be replaced by, key, seed or credential material.
+AIHF_SIGNER_SENTINEL_CONTENT="AIHF-SIGNER-SENTINEL non-secret marker"
+AIHF_FUNDCTL="/usr/local/sbin/fundctl"
+AIHF_FUNDCTL_SOURCE="ops/fundctl/fundctl"
 AIHF_AUDIT_LOG="/var/log/aihf-provision.log"
 AIHF_WSL_CONF="/etc/wsl.conf"
+
+# Service identities (P1-S3B, D-0009): "user home". Each has a private same-named group, no supplementary groups, no sudo, a locked password and a
+# non-login shell; the home is its private state directory (see AIHF_DIRS).
+AIHF_SERVICES=(
+  "aihf-riskd /var/lib/aihf/riskd"
+  "aihf-traderd /var/lib/aihf/traderd"
+  "aihf-signerd /var/lib/aihf/signerd"
+)
 
 # Directory table: "path owner group mode" (applied in order; parents first). Mirrors the dir entries of the layout contract.
 AIHF_DIRS=(
@@ -40,6 +55,11 @@ AIHF_DIRS=(
   "/var/lib/aihf/runtime root root 0755"
   "/var/lib/aihf/runtime/scratch aihf-ops aihf-ops 0700"
   "/var/lib/aihf/runtime/state aihf-ops aihf-ops 0700"
+  "/var/lib/aihf/riskd aihf-riskd aihf-riskd 0700"
+  "/var/lib/aihf/traderd aihf-traderd aihf-traderd 0700"
+  "/var/lib/aihf/signerd aihf-signerd aihf-signerd 0700"
+  "/var/lib/aihf/signerd/secrets aihf-signerd aihf-signerd 0700"
+  "/usr/local/sbin root root 0755"
 )
 
 # Security-critical Codex-home names that are pre-created root-owned so the ops identity cannot create, replace or remove them

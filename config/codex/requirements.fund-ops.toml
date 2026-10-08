@@ -28,7 +28,7 @@ allow_browser_and_computer_use = false
 [allowed_permission_profiles]
 ":read-only" = true
 
-# Apps/connectors, plugins and browser/computer surfaces are outside the approved v1 surface.
+# Apps/connectors, plugins and browser/computer surfaces are outside the approved v1 surface. Memories (locally stored context reused across sessions) is pinned off (OD-7).
 [features]
 apps = false
 plugins = false
@@ -38,6 +38,7 @@ browser_use_external = false
 browser_use_full_cdp_access = false
 computer_use = false
 in_app_browser = false
+memories = false
 
 # Native Windows: the elevated sandbox is the strongest implementation; the unelevated fallback cannot
 # enforce every carve-out. Ignored on non-Windows hosts.

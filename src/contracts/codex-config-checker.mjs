@@ -50,6 +50,8 @@ export const FEATURE_PINS = Object.freeze({
   apps: false, plugins: false, remote_plugin: false, browser_use: false, browser_use_external: false,
   browser_use_full_cdp_access: false, computer_use: false, in_app_browser: false,
 });
+// The managed requirements additionally pin Memories off (OD-7, P1-S3): locally stored context reused across sessions is state the ops identity could shape. The fund-ops profile does not set it; the requirements are the enforcing layer.
+export const REQUIREMENTS_FEATURE_PINS = Object.freeze({ ...FEATURE_PINS, memories: false });
 export const REQUIREMENTS_KEYS = Object.freeze([
   'allow_browser_and_computer_use', 'allow_managed_hooks_only', 'allowed_approval_policies', 'allowed_approvals_reviewers', 'allowed_permission_profiles',
   'allowed_sandbox_modes', 'allowed_web_search_modes', 'default_permissions', 'features', 'mcp_servers', 'windows',
@@ -196,7 +198,7 @@ export function checkFundOpsRequirements(text) {
   if (!same(d.allowed_web_search_modes, ['cached'])) R('allowed_web_search_modes must be ["cached"]');
   if (d.allow_managed_hooks_only !== true) R('allow_managed_hooks_only must be true');
   if (d.allow_browser_and_computer_use !== false) R('allow_browser_and_computer_use must be false');
-  if (!same(d.features, FEATURE_PINS)) R('features must pin apps, plugins, remote_plugin, browser and computer-use surfaces to false');
+  if (!same(d.features, REQUIREMENTS_FEATURE_PINS)) R('features must pin apps, plugins, remote_plugin, memories, browser and computer-use surfaces to false');
   if (!same(d.windows, { allowed_sandbox_implementations: ['elevated'] })) R('windows.allowed_sandbox_implementations must be ["elevated"]');
   if (!isObj(d.mcp_servers)) R('mcp_servers allowlist must be present (an absent table leaves MCP unrestricted; a present empty table disables all servers)');
   else for (const [id, e] of Object.entries(d.mcp_servers)) identityShape(id, e, out);

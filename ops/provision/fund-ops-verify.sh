@@ -33,8 +33,21 @@ if grep -rEq -e "(^|[^[:alnum:]_-])%?$AIHF_OPS_USER([^[:alnum:]_-]|\$)" /etc/sud
 as_ops sudo -n true >/dev/null 2>&1 && fail "identity: sudo -n succeeded" || pass "identity: cannot sudo"
 sudo -n -l -U "$AIHF_OPS_USER" 2>&1 | grep -qi 'not allowed' && pass "identity: sudo -l reports no rights (covers ALL-wildcard and command-scoped rules)" || fail "identity: sudo -l reports rights for $AIHF_OPS_USER"
 [ "$(getent passwd "$AIHF_OPS_USER" | cut -d: -f6)" = "$AIHF_OPS_HOME" ] && pass "identity: dedicated home $AIHF_OPS_HOME" || fail "identity: home differs"
-for svc in riskd traderd signerd; do getent passwd "$svc" >/dev/null && fail "service identity $svc exists (belongs to a later slice)" || true; done
-pass "no premature service identities (riskd/traderd/signerd absent)"
+# service identities (P1-S3B): the positive contract from contracts/ops-runtime-layout.json
+as_svc() { local u="$1"; shift; runuser -u "$u" -- env -i PATH=/usr/bin:/bin HOME=/nonexistent LANG=C.UTF-8 "$@"; }
+SVC_USERS=()
+for row in "${AIHF_SERVICES[@]}"; do
+  read -r su sh_home <<<"$row"; SVC_USERS+=("$su")
+  if ! id "$su" >/dev/null 2>&1; then fail "service identity: $su does not exist"; continue; fi
+  [ "$(id -u "$su")" -ne 0 ] && pass "service identity: $su is non-root (uid $(id -u "$su"))" || fail "service identity: $su has uid 0"
+  [ "$(id -nG "$su")" = "$su" ] && pass "service identity: $su has only its private group and no supplementary groups" || fail "service identity: $su groups are '$(id -nG "$su")'"
+  [ -z "$(getent group "$su" | cut -d: -f4)" ] && pass "service identity: group $su has no explicit members (not shared with $AIHF_OPS_USER or another service)" || fail "service identity: group $su has members"
+  [ "$(passwd -S "$su" | cut -d' ' -f2)" = "L" ] && pass "service identity: $su password locked" || fail "service identity: $su password is not locked"
+  [ "$(getent passwd "$su" | cut -d: -f6,7)" = "$sh_home:$AIHF_SERVICE_SHELL" ] && pass "service identity: $su home $sh_home, non-login shell $AIHF_SERVICE_SHELL" || fail "service identity: $su home or shell differs from the contract"
+  if grep -rEq -e "(^|[^[:alnum:]_-])%?$su([^[:alnum:]_-]|$)" /etc/sudoers /etc/sudoers.d 2>/dev/null; then fail "service identity: $su referenced in sudoers"; else pass "service identity: $su not referenced in sudoers"; fi
+  sudo -n -l -U "$su" 2>&1 | grep -qi 'not allowed' && pass "service identity: sudo -l reports no rights for $su" || fail "service identity: sudo -l reports rights for $su"
+done
+[ "${#SVC_USERS[@]}" -eq 3 ] && pass "service identities: exactly the three contracted accounts are checked" || fail "service identities: unexpected service table"
 
 # ---- 2 ownership and modes (layout table + files)
 chk() { # path expected_owner expected_group expected_mode(octal as in table) type-flag
@@ -46,6 +59,8 @@ chk() { # path expected_owner expected_group expected_mode(octal as in table) ty
 for row in "${AIHF_DIRS[@]}"; do read -r p o g m <<<"$row"; chk "$p" "$o" "$g" "$m"; done
 chk "$AIHF_REQUIREMENTS" root root 0644
 chk "$AIHF_LAUNCHER" root root 0755
+chk "$AIHF_SIGNER_SENTINEL" aihf-signerd aihf-signerd 0600
+chk "$AIHF_FUNDCTL" root root 0700
 [ -L "$AIHF_RELEASE_CURRENT" ] && [ "$(stat -c '%U:%G' "$AIHF_RELEASE_CURRENT")" = "root:root" ] && pass "layout: $AIHF_RELEASE_CURRENT is a root-owned symlink" || fail "layout: $AIHF_RELEASE_CURRENT is not a root-owned symlink"
 REL=$(readlink -f "$AIHF_RELEASE_CURRENT")
 case "$REL" in "$AIHF_RELEASE_ROOT"/*) pass "release: current resolves inside the release root ($REL)" ;; *) fail "release: current resolves to '$REL', outside $AIHF_RELEASE_ROOT" ;; esac
@@ -95,11 +110,21 @@ if grep -rIlE -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|\b0x[0-9a-fA-F]{64}\b|\bsk-
 
 [ -z "$(find "$REL" \( -name auth.json -o -name '.env' -o -name '*.pem' -o -name '*.key' \) -print -quit 2>/dev/null)" ] && pass "secrets: no credential-style files in the release" || fail "secrets: credential-style file in the release"
 [ -z "$(find "$REL" ! -type f ! -type d -print -quit 2>/dev/null)" ] && pass "release: only regular files and directories (no devices, FIFOs, sockets)" || fail "release: contains special files"
+[ "$(cat "$AIHF_SIGNER_SENTINEL" 2>/dev/null)" = "$AIHF_SIGNER_SENTINEL_CONTENT" ] && [ "$(wc -c < "$AIHF_SIGNER_SENTINEL")" -eq $(( ${#AIHF_SIGNER_SENTINEL_CONTENT} + 1 )) ] && pass "sentinel: exactly the fixed non-secret marker" || fail "sentinel: content differs from the fixed non-secret marker"
+fcwant=$(awk -v f="$AIHF_FUNDCTL_SOURCE" '$2==f{print $1}' "$PINS" 2>/dev/null)
+[ -n "$fcwant" ] && [ "$(sha "$AIHF_FUNDCTL")" = "$fcwant" ] && pass "fundctl: installed file equals the pinned canonical hash" || fail "fundctl: installed file differs from the pinned canonical hash"
+fcout=$("$AIHF_FUNDCTL" status 2>/dev/null); fcrc=$?
+[ "$fcout" = "NOT_IMPLEMENTED" ] && [ "$fcrc" -ne 0 ] && pass "fundctl: recognized command prints NOT_IMPLEMENTED and exits non-zero (inert)" || fail "fundctl: recognized command did not fail closed (rc=$fcrc)"
+"$AIHF_FUNDCTL" bogus >/dev/null 2>&1 && fail "fundctl: unknown command succeeded" || pass "fundctl: unknown command fails closed"
 
 # ---- 4 identity-level DENIAL tests (the ops identity attempts the forbidden writes)
 denied() { # label, command... (must fail)
   local label="$1"; shift
   if as_ops "$@" >/dev/null 2>&1; then fail "denial: $label was ALLOWED"; else pass "denial: $label denied"; fi
+}
+denied_as() { # service user, label, command... (must fail when run as that service identity)
+  local u="$1" label="$2"; shift 2
+  if as_svc "$u" "$@" >/dev/null 2>&1; then fail "denial: $label was ALLOWED"; else pass "denial: $label denied"; fi
 }
 allowed() { # label, command... (positive control: must succeed)
   local label="$1"; shift
@@ -150,6 +175,26 @@ denied "create a file in /var/lib/aihf" touch /var/lib/aihf/injected
 denied "create a file in /usr/local/bin" touch /usr/local/bin/injected
 denied "modify /etc/passwd" bash -c "echo x >> /etc/passwd"
 denied "read another identity's secret-style path (root-only file) /etc/shadow" cat /etc/shadow
+# service trees: the ops identity and every other service are denied; the owner keeps access (positive control)
+denied "ops identity lists the signer state directory" ls "/var/lib/aihf/signerd"
+denied "ops identity reads the signer sentinel" cat "$AIHF_SIGNER_SENTINEL"
+denied "ops identity writes into the signer secret directory" touch "$AIHF_SIGNER_SECRET_DIR/injected"
+denied "ops identity reads fundctl" cat "$AIHF_FUNDCTL"
+denied "ops identity executes fundctl" "$AIHF_FUNDCTL" status
+for row in "${AIHF_SERVICES[@]}"; do
+  read -r su sh_home <<<"$row"
+  as_svc "$su" ls "$sh_home" >/dev/null 2>&1 && control "allowed (intended): $su lists its own state directory" || fail "control: $su cannot list its own state directory, the service denial tests could be vacuous"
+  denied "ops identity lists $sh_home" ls "$sh_home"
+  denied "ops identity creates a file in $sh_home" touch "$sh_home/injected"
+  denied_as "$su" "$su reads fundctl" cat "$AIHF_FUNDCTL"
+  denied_as "$su" "$su executes fundctl" "$AIHF_FUNDCTL" status
+  for row2 in "${AIHF_SERVICES[@]}"; do
+    read -r ou oh <<<"$row2"; [ "$ou" = "$su" ] && continue
+    denied_as "$ou" "$ou lists $sh_home" ls "$sh_home"
+  done
+  if [ "$su" != aihf-signerd ]; then denied_as "$su" "$su reads the signer sentinel" cat "$AIHF_SIGNER_SENTINEL"; fi
+done
+as_svc aihf-signerd cat "$AIHF_SIGNER_SENTINEL" >/dev/null 2>&1 && control "allowed (intended): aihf-signerd reads its own sentinel" || fail "control: aihf-signerd cannot read its own sentinel, the service denial tests could be vacuous"
 
 # ---- 5 where can the ops identity write at all? (whole root filesystem; mounts are examined separately)
 writable=$(as_ops find / -xdev \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /mnt \) -prune -o -writable \( -type d -o -type f \) -print 2>/dev/null)
