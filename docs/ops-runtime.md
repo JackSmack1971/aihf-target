@@ -77,7 +77,7 @@ Evidence levels are never merged: `CONFIG_LOAD_VERIFIED`, `RUNTIME_ENFORCEMENT_V
 
 ## Not in this slice
 
-Provisioning of the `riskd`, `traderd`, `signerd` identities and the `fundctl` executable (contracts only as of P1-S3A); real signer secret storage; production Hyperliquid connectivity; Phase 2 data/MCP integrations; the outbound-network policy. OD-3 (unattended `never` approvals) stays unresolved and `never` is not permitted by the requirements. OD-4 (per-role MCP narrowing) stays deferred.
+Provisioning of the `riskd`, `traderd`, `signerd` identities and the `fundctl` executable (provisioning artifacts exist as of P1-S3B but have NOT been applied to any live system; live identity/ACL proof is P1-S3C); real signer secret storage; production Hyperliquid connectivity; Phase 2 data/MCP integrations; the outbound-network policy. OD-3 (unattended `never` approvals) stays unresolved and `never` is not permitted by the requirements. OD-4 (per-role MCP narrowing) stays deferred.
 
 ## P1-S3A contracts (decisions D-0009; contracts only, nothing provisioned)
 
@@ -86,7 +86,7 @@ Provisioning of the `riskd`, `traderd`, `signerd` identities and the `fundctl` e
 - **Service identities** `aihf-riskd`, `aihf-traderd`, `aihf-signerd`: non-login (`/usr/sbin/nologin`), locked password, no sudo, no supplementary groups, one private group each, no group shared with `aihf-ops` or each other. Home is the identity's private state directory.
 - **Private state** `/var/lib/aihf/{riskd,traderd,signerd}`: each `0700` and owned by its own `user:group`. The ops identity can traverse `/var/lib/aihf` (root `0755`) but cannot enter any of them.
 - **Signer secret directory** `/var/lib/aihf/signerd/secrets` (`0700`) holding only a `0600` `sentinel` file. The sentinel is a fixed non-secret marker used by the later proof that `aihf-ops`, `aihf-riskd` and `aihf-traderd` cannot read signer-owned data. No real secret, key or seed exists in or is created from this contract.
-- **`fundctl`** installed at `/usr/local/sbin/fundctl` (source `ops/fundctl/fundctl`, not yet written): `root:root` `0700` in a root-owned non-writable parent, so `aihf-ops` can neither execute nor replace it. It has no network, reads no secrets, and every one of the eight pinned commands (`status`, `arm`, `disarm`, `halt`, `flatten`, `activate-release`, `activate-policy`, `rotate-agent`) must fail closed with `NOT_IMPLEMENTED` and a non-zero exit. Operator controls remain unreachable through MCP.
+- **`fundctl`** installed at `/usr/local/sbin/fundctl` (source `ops/fundctl/fundctl`, an inert skeleton as of P1-S3B; hash-pinned and the only executable path admitted beneath `ops/` besides `ops/provision/`): `root:root` `0700` in a root-owned non-writable parent, so `aihf-ops` can neither execute nor replace it. It has no network, reads no secrets, and every one of the eight pinned commands (`status`, `arm`, `disarm`, `halt`, `flatten`, `activate-release`, `activate-policy`, `rotate-agent`) must fail closed with `NOT_IMPLEMENTED` and a non-zero exit. Operator controls remain unreachable through MCP.
 
 Accepted trust statement (OD-5): the Windows administrator/operator is Zone 0 trust. The dedicated WSL distro stops `fund-ops` from escalating itself; it is not isolation from a Windows administrator.
 

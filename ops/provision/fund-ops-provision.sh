@@ -15,7 +15,7 @@
 #
 # Properties: idempotent; never widens permissions silently; installs the managed requirements byte-for-byte from the reviewed
 # canonical artifact after verifying its pinned SHA-256; the activated release is root-owned, has no Git working tree and is switched
-# atomically; mutable state lives only under the runtime and ops-home directories. No secret material is handled.
+# atomically; mutable state lives only under the runtime and ops-home directories. No secret material is handled (the signer sentinel is a fixed non-secret marker).
 set -euo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 SRC=$(cd "$HERE/../.." && pwd -P)
@@ -72,6 +72,25 @@ fi
 if grep -rEq -e "(^|[^[:alnum:]_-])%?$AIHF_OPS_USER([^[:alnum:]_-]|\$)" /etc/sudoers /etc/sudoers.d 2>/dev/null; then die "$AIHF_OPS_USER is referenced in sudoers"; fi
 if [ "$APPLY" -eq 1 ] && getent passwd "$AIHF_OPS_USER" >/dev/null; then sudo -n -l -U "$AIHF_OPS_USER" 2>&1 | grep -qi 'not allowed' || die "$AIHF_OPS_USER has sudo rights"; fi
 act passwd -l "$AIHF_OPS_USER" >/dev/null
+
+# ---------------------------------------------------------------- service identities (P1-S3B; identities and directories only, no service is installed or started)
+step "service identities (private group, no supplementary groups, no sudo, locked password, non-login shell)"
+for row in "${AIHF_SERVICES[@]}"; do
+  read -r svc_user svc_home <<<"$row"
+  if ! getent group "$svc_user" >/dev/null; then act groupadd --system "$svc_user"; fi
+  if ! getent passwd "$svc_user" >/dev/null; then
+    act useradd --system --gid "$svc_user" --home-dir "$svc_home" --no-create-home --shell "$AIHF_SERVICE_SHELL" --comment "AIHF service identity (unprivileged)" "$svc_user"
+  else
+    [ "$(id -u "$svc_user")" -ne 0 ] || die "$svc_user has uid 0"
+    [ "$(id -nG "$svc_user")" = "$svc_user" ] || die "$svc_user has supplementary groups ($(id -nG "$svc_user")); refusing to continue"
+    [ "$(getent passwd "$svc_user" | cut -d: -f6,7)" = "$svc_home:$AIHF_SERVICE_SHELL" ] || die "$svc_user has a different home or shell than the layout contract"
+  fi
+  # a private group has no member other than its owner: never shared with aihf-ops or another service
+  [ -z "$(getent group "$svc_user" | cut -d: -f4)" ] || die "group $svc_user has explicit members (private groups have none)"
+  if grep -rEq -e "(^|[^[:alnum:]_-])%?$svc_user([^[:alnum:]_-]|\$)" /etc/sudoers /etc/sudoers.d 2>/dev/null; then die "$svc_user is referenced in sudoers"; fi
+  if [ "$APPLY" -eq 1 ] && getent passwd "$svc_user" >/dev/null; then sudo -n -l -U "$svc_user" 2>&1 | grep -qi 'not allowed' || die "$svc_user has sudo rights"; fi
+  act passwd -l "$svc_user" >/dev/null
+done
 
 # ---------------------------------------------------------------- directories
 step "directory layout (ownership and modes from the layout table)"
@@ -162,6 +181,25 @@ install_protected() { # home_dir, rows...
 if [ "$APPLY" -eq 1 ]; then install -d -o root -g root -m 0700 "$STAGE_ROOT"; fi
 install_protected "$AIHF_CODEX_HOME" "${AIHF_CODEX_HOME_PROTECTED[@]}"
 install_protected "$AIHF_OPS_HOME" "${AIHF_OPS_HOME_PROTECTED[@]}"
+
+# ---------------------------------------------------------------- signer sentinel and inert fundctl (staged in the root-only directory, installed by atomic rename)
+step "signer sentinel $AIHF_SIGNER_SENTINEL (fixed non-secret marker, aihf-signerd 0600) and root-only inert fundctl $AIHF_FUNDCTL"
+FC_SRC="$SRC/$AIHF_FUNDCTL_SOURCE"
+FC_WANT=$(pinned "$AIHF_FUNDCTL_SOURCE")
+[ -n "$FC_WANT" ] && [ "$(lf_sha "$FC_SRC")" = "$FC_WANT" ] || die "canonical fundctl differs from the pinned hash"
+if [ "$APPLY" -eq 1 ]; then
+  printf '%s\n' "$AIHF_SIGNER_SENTINEL_CONTENT" > "$STAGE_ROOT/sentinel"
+  chown aihf-signerd:aihf-signerd "$STAGE_ROOT/sentinel"; chmod 0600 "$STAGE_ROOT/sentinel"
+  mv -T -- "$STAGE_ROOT/sentinel" "$AIHF_SIGNER_SENTINEL"
+  tr -d '\r' < "$FC_SRC" > "$STAGE_ROOT/fundctl"
+  [ "$(sha256sum "$STAGE_ROOT/fundctl" | cut -d' ' -f1)" = "$FC_WANT" ] || die "staged fundctl hash mismatch"
+  chown root:root "$STAGE_ROOT/fundctl"; chmod 0700 "$STAGE_ROOT/fundctl"
+  mv -T -- "$STAGE_ROOT/fundctl" "$AIHF_FUNDCTL"
+  echo "OK      installed sentinel and fundctl sha256=$FC_WANT"
+else
+  echo "PLAN    write the fixed non-secret sentinel marker to $AIHF_SIGNER_SENTINEL aihf-signerd:aihf-signerd 0600"
+  echo "PLAN    install canonical fundctl (sha256 $FC_WANT) to $AIHF_FUNDCTL root:root 0700"
+fi
 
 # ---------------------------------------------------------------- release (read-only, atomic activation)
 tree_manifest() { ( cd "$1" && find . -type f ! -name RELEASE-MANIFEST.sha256 ! -path './.git/*' ! -path './node_modules/*' ! -path './.runtime/*' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum ); }

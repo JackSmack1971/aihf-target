@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { spawnSync } from 'node:child_process';
-import { ROOT, abs, readJson, clone } from '../helpers.mjs';
+import path from 'node:path';
+import { ROOT, abs, readJson, clone, walk } from '../helpers.mjs';
 import { checkOpsLayout } from '../../src/contracts/ops-layout-checker.mjs';
 
 // P1-S3A: contract-level proof for the riskd/traderd/signerd identities, their private state, the signerd-only secret directory and the
@@ -130,10 +130,10 @@ test('fundctl contract: root-only, inert, offline, secretless, exact pinned comm
   rejects(mut((x) => { x.entries = x.entries.filter((e2) => e2.path !== FUNDCTL); }), /no layout entry/, 'fundctl entry dropped');
 });
 
-test('P1-S3A scope: contracts only. No fundctl executable, no provisioning code for service identities, no secret material, no IPC/network policy', () => {
-  assert.equal(fs.existsSync(abs('ops', 'fundctl')), false, 'ops/fundctl/fundctl is not written in P1-S3A');
-  const tracked = spawnSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
-  assert.deepEqual(tracked.filter((f) => /^ops\/(?!provision\/)/.test(f)), [], 'no ops/ path outside the pinned provisioning directory');
+test('P1-S3B scope: provisioning artifacts and the inert fundctl only. No service code, no secret material, no IPC/network policy', () => {
+  assert.equal(fs.existsSync(abs('ops', 'fundctl', 'fundctl')), true, 'ops/fundctl/fundctl exists (inert skeleton)');
+  const onDisk = walk(abs('ops')).filter((p) => fs.statSync(p).isFile()).map((p) => path.relative(ROOT, p).split(path.sep).join('/')).filter((f) => !f.startsWith('ops/provision/'));
+  assert.deepEqual(onDisk, ['ops/fundctl/fundctl'], 'no ops/ path outside the pinned provisioning directory except the one pinned fundctl');
   const text = fs.readFileSync(abs('contracts', 'ops-runtime-layout.json'), 'utf8');
   assert.ok(!/-----BEGIN [A-Z ]*PRIVATE KEY-----|\b0x[0-9a-fA-F]{40,64}\b|\bmnemonic\b|seed phrase/i.test(text), 'no secret-like content in the layout contract');
   assert.ok(!/socket|listen|port|iptables|nftables|proxy|https?:\/\//i.test(text.replace(/"note":[^\n]*/, '')), 'no IPC or network policy is defined here (deferred)');

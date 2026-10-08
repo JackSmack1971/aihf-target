@@ -1,0 +1,14 @@
+#!/bin/sh
+# fundctl - root-only operator control (P1-S3B: INERT SKELETON, decision D-0009).
+# Installed by the operator-run provisioner to /usr/local/sbin/fundctl as root:root 0700; the ops identity cannot read or execute it.
+# It recognizes exactly the eight pinned operator command names and implements none of them: every recognized command prints NOT_IMPLEMENTED and
+# exits non-zero; an unknown or missing command is refused and exits non-zero. It performs no network access, reads no secret, controls no service,
+# mutates no state, and never echoes its arguments.
+case "${1-}" in
+  status|arm|disarm|halt|flatten|activate-release|activate-policy|rotate-agent)
+    echo "NOT_IMPLEMENTED"
+    exit 70 ;;
+  *)
+    echo "REFUSED: unknown command" >&2
+    exit 64 ;;
+esac

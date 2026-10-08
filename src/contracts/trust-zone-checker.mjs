@@ -37,7 +37,7 @@ export const REQUIRED_SIGNER_GROUPS = Object.freeze(['API_WALLET_MANAGEMENT', CU
 const SCOPES = new Set(['path', 'code', 'package_json']);
 const CODE_FILE = /\.(mjs|cjs|js|jsx|ts|mts|cts|tsx|sh|bash|zsh|py|rb|pl|ps1)$/i;
 /** Code files anywhere outside tests/ (tests hold fixtures that intentionally contain violations). */
-export const isCodePath = (p) => CODE_FILE.test(p) && !p.startsWith('tests/');
+export const isCodePath = (p) => (CODE_FILE.test(p) || p === 'ops/fundctl/fundctl') && !p.startsWith('tests/');
 const ZONE_KEYS = new Set(['id', 'name', 'components', 'codex_present', 'mcp_present', 'holds_trading_key', 'raw_exchange_write', 'custody_actions',
   'ai_process_control', 'treats_llm_output_as_hostile', 'issues_execution_permit', 'acts_only_inside_execution_permit', 'compile_time_action_allowlist',
   'production_source_writes', 'arbitrary_shell', 'general_outbound_network', 'filesystem_outside_state_boundary']);
@@ -205,6 +205,10 @@ const OPS_DIR = ['ops', 'provision'].join('/');
 export const OPS_PROVISION_FILES = Object.freeze([
   'README.md', 'canonical-artifacts.sha256', 'wsl.conf.fund-ops', ...['layout', 'provision', 'validate', 'verify'].map((n) => `fund-ops-${n}.sh`),
 ].map((f) => `${OPS_DIR}/${f}`));
+// P1-S3B (FU-0007): the root-only inert operator control is ONE additional exact pinned path with its own directory; it is not a general ops/ exemption.
+// It receives NO capability exemption: it is scanned as code by every rule (it has no file extension, so isCodePath names it explicitly) and only its path is admitted beneath ops/.
+export const OPS_FUNDCTL_FILE = ['ops', 'fundctl', 'fundctl'].join('/');
+const OPS_FUNDCTL_DIR = ['ops', 'fundctl'].join('/');
 const OPS_PROVISION_EXEMPT = Object.freeze(new Set(['ZONE_SIGNING_FILESYSTEM_ESCAPE', OPS_ISOLATION]));
 const OPS_TOP = /^ops(\/|$)/i;
 
@@ -213,8 +217,8 @@ export function checkRepoTree(entries, rules = loadRules()) {
   const out = [];
   for (const e of entries) {
     // anything under ops/ other than the pinned provisioning directory and files is rejected
-    if (OPS_TOP.test(e.path) && e.path !== 'ops' && e.path !== OPS_DIR && !OPS_PROVISION_FILES.includes(e.path)) {
-      out.push(V(OPS_ISOLATION, `${e.path}: only the pinned files under ${OPS_DIR} may exist beneath ops/`));
+    if (OPS_TOP.test(e.path) && e.path !== 'ops' && e.path !== OPS_DIR && e.path !== OPS_FUNDCTL_DIR && e.path !== OPS_FUNDCTL_FILE && !OPS_PROVISION_FILES.includes(e.path)) {
+      out.push(V(OPS_ISOLATION, `${e.path}: only the pinned files under ${OPS_DIR} and ${OPS_FUNDCTL_FILE} may exist beneath ops/`));
     }
     const pinnedProvision = OPS_PROVISION_FILES.includes(e.path);
     const inCode = isCodePath(e.path) && e.text !== undefined;

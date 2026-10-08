@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT, abs, readJson, readText, denyTest, clone, tempDir, writeFiles, makeNonRegularEntry, walk } from '../helpers.mjs';
 import { checkOpsLayout } from '../../src/contracts/ops-layout-checker.mjs';
-import { checkRepoTree, collectTree, parseRules, OPS_PROVISION_FILES } from '../../src/contracts/trust-zone-checker.mjs';
+import { checkRepoTree, collectTree, parseRules, OPS_PROVISION_FILES, OPS_FUNDCTL_FILE } from '../../src/contracts/trust-zone-checker.mjs';
 
 const LAYOUT = () => readJson('contracts', 'ops-runtime-layout.json');
 const mut = (fn) => { const d = clone(LAYOUT()); fn(d); return d; };
@@ -115,7 +115,7 @@ function shellVars(text) {
   const vars = {};
   for (const m of text.matchAll(/^(AIHF_[A-Z_]+)="([^"]*)"$/gm)) vars[m[1]] = m[2];
   const arr = (name) => [...(new RegExp(`^${name}=\\(\\n([\\s\\S]*?)\\n\\)`, 'm').exec(text)?.[1] ?? '').matchAll(/^\s*"([^"]+)"$/gm)].map((m) => m[1].split(' '));
-  return { vars, dirs: arr('AIHF_DIRS'), prot: arr('AIHF_CODEX_HOME_PROTECTED'), homeProt: arr('AIHF_OPS_HOME_PROTECTED') };
+  return { vars, dirs: arr('AIHF_DIRS'), services: arr('AIHF_SERVICES'), prot: arr('AIHF_CODEX_HOME_PROTECTED'), homeProt: arr('AIHF_OPS_HOME_PROTECTED') };
 }
 test('ops provision: fund-ops-layout.sh mirrors contracts/ops-runtime-layout.json exactly (no drift)', () => {
   const { vars, dirs, prot } = shellVars(sh('fund-ops-layout.sh'));
@@ -138,12 +138,24 @@ test('ops provision: fund-ops-layout.sh mirrors contracts/ops-runtime-layout.jso
   assert.equal(vars.AIHF_CODEX_HOME, r.codex_home);
   const wantDirs = d.entries.filter((e) => e.type === 'dir' && e.role !== 'toolchain' || e.path === P('opt', 'aihf', 'toolchain') || e.path === P('opt', 'aihf', 'bin'))
     .filter((e) => e.path !== P('opt', 'aihf', 'toolchain', 'codex'))
-    .filter((e) => !['service_state', 'signer_secret', 'operator_control'].includes(e.role)); // P1-S3A contract-only roles: provisioning not started
+    .filter((e) => e.type === 'dir'); // P1-S3B: service state, the signer secret directory and the operator-control parent are provisioned too
   assert.deepEqual(dirs.map((x) => x.join(' ')).sort(), wantDirs.map((e) => `${e.path} ${e.owner} ${e.group} ${e.mode}`).sort());
   assert.deepEqual(prot.map((x) => x.join(' ')).sort(), d.codex_home_protected.map((p) => `${p.name} ${p.type} ${p.mode}`).sort());
   const homeProt = shellVars(sh('fund-ops-layout.sh')).homeProt;
   assert.deepEqual(homeProt.map((x) => x.join(' ')).sort(), d.ops_home_protected.map((p) => `${p.name} ${p.type} ${p.mode}`).sort());
-  assert.ok(dirs.length >= 12 && prot.length === 11 && homeProt.length === 6, 'parser sanity: tables were actually read');
+  // P1-S3B: service identities, signer sentinel and fundctl constants mirror the contract
+  const svc = shellVars(sh('fund-ops-layout.sh')).services;
+  assert.deepEqual(svc.map((x) => x.join(' ')), d.identities.slice(1).map((i) => `${i.user} ${i.home}`), 'service identity table');
+  assert.equal(vars.AIHF_SERVICE_SHELL, '/usr/sbin/nologin');
+  for (const i of d.identities.slice(1)) assert.equal(i.shell, vars.AIHF_SERVICE_SHELL);
+  const fe = (p) => d.entries.find((e) => e.path === p);
+  assert.equal(vars.AIHF_SIGNER_SENTINEL, P('var', 'lib', 'aihf', 'signerd', 'secrets', 'sentinel'));
+  assert.equal(vars.AIHF_SIGNER_SECRET_DIR, P('var', 'lib', 'aihf', 'signerd', 'secrets'));
+  assert.deepEqual([fe(vars.AIHF_SIGNER_SENTINEL).owner, fe(vars.AIHF_SIGNER_SENTINEL).group, fe(vars.AIHF_SIGNER_SENTINEL).mode], ['aihf-signerd', 'aihf-signerd', '0600']);
+  assert.equal(vars.AIHF_FUNDCTL, d.fundctl.install_path);
+  assert.equal(vars.AIHF_FUNDCTL_SOURCE, d.fundctl.source_path);
+  assert.deepEqual([fe(vars.AIHF_FUNDCTL).owner, fe(vars.AIHF_FUNDCTL).group, fe(vars.AIHF_FUNDCTL).mode], ['root', 'root', '0700']);
+  assert.ok(dirs.length === 17 && prot.length === 11 && homeProt.length === 6, 'parser sanity: tables were actually read');
   assert.match(sh('fund-ops-layout.sh'), /^AIHF_CODEX_SHA256="[0-9a-f]{64}"$/m, 'the Codex binary hash pin exists');
 });
 
@@ -159,7 +171,7 @@ test('ops provision: WSL template matches the layout contract hardening flags', 
 // ------------------------------------------------------------------ pinned canonical artifacts
 test('ops provision: canonical-artifacts.sha256 pins exactly the reviewed artifacts and every pin matches', () => {
   const rows = sh('canonical-artifacts.sha256').trim().split('\n').map((l) => l.split(/\s+/));
-  assert.deepEqual(rows.map((r) => r[1]).sort(), ['config/codex/fund-ops.config.toml', 'config/codex/requirements.fund-ops.toml', 'contracts/ops-runtime-layout.json', 'ops/provision/wsl.conf.fund-ops']);
+  assert.deepEqual(rows.map((r) => r[1]).sort(), ['config/codex/fund-ops.config.toml', 'config/codex/requirements.fund-ops.toml', 'contracts/ops-runtime-layout.json', 'ops/fundctl/fundctl', 'ops/provision/wsl.conf.fund-ops']);
   for (const [want, rel] of rows) {
     assert.match(want, /^[0-9a-f]{64}$/);
     assert.equal(sha(fs.readFileSync(abs(rel), 'utf8')), want, `${rel} differs from its pin (update the pin in the same reviewed change)`);
@@ -175,8 +187,8 @@ function scriptProblems(name, text) {
   if (name === 'fund-ops-layout.sh' && code.split('\n').some((l) => l.trim() && !/^(AIHF_[A-Z0-9_]+=("[^"]*"|\()|"[^"]*"|\))$/.test(l.trim()))) out.push('layout file contains commands');
   if (/chmod\s+(-R\s+)?(0?7[0-7][2367]|0?[0-7]?[0-7][2367]7|a\+w|o\+w|go\+w|777|666)\b/.test(code)) out.push('widening chmod');
   if (/NOPASSWD|visudo|usermod\s+-a?G|gpasswd\s+-a|adduser\s+\S+\s+sudo|chpasswd|passwd\s+-d\b/.test(code)) out.push('privilege grant');
-  // the verifier legitimately NAMES the service accounts once, to assert that they do not exist
-  if (/(riskd|traderd|signerd)/i.test(code.split('\n').filter((l) => !/^for svc in riskd traderd signerd|no premature service identities/.test(l.trim())).join('\n'))) out.push('service identity');
+  // P1-S3B: service accounts are referenced only through the layout table (AIHF_SERVICES) or by pinned aihf- prefixed names and paths; a bare name is outside the contract
+  if (/(^|[^\w/-])(riskd|traderd|signerd)\b/i.test(code)) out.push('service identity');
   if (/co[-_ ]?invest/i.test(code)) out.push('Co-Invest reference');
   // the validator and verifier legitimately contain the secret-SCANNING pattern (a grep for key headers); no other secret reference is allowed
   const noScan = code.split('\n').filter((l) => !(/^(fund-ops-validate|fund-ops-verify)\.sh$/.test(name) && /grep .*BEGIN \[A-Z \]\*PRIVATE KEY/.test(l))).join('\n');
@@ -185,7 +197,7 @@ function scriptProblems(name, text) {
   if (/\/mnt\/[a-z]/.test(code) && name === 'fund-ops-provision.sh' && !/Windows mount/.test(code)) out.push('depends on a Windows mount');
   return out;
 }
-test('ops provision: scripts are syntactically valid bash, narrow, and contain no privilege grants, secrets, network use or service identities', () => {
+test('ops provision: scripts are syntactically valid bash, narrow, and contain no privilege grants, secrets, network use or uncontracted service identities', () => {
   for (const f of ['fund-ops-layout.sh', 'fund-ops-validate.sh', 'fund-ops-provision.sh', 'fund-ops-verify.sh']) {
     const t = sh(f);
     assert.deepEqual(scriptProblems(f, t), [], f);
@@ -194,7 +206,7 @@ test('ops provision: scripts are syntactically valid bash, narrow, and contain n
   // deliberate negatives: the assertion function itself rejects each hazard
   const base = 'set -euo pipefail\n';
   for (const [bad, why] of [['chmod 777 /x', 'widening chmod'], ['echo "u ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/x', 'privilege grant'], ['usermod -aG sudo aihf-ops', 'privilege grant'],
-    ['useradd signerd', 'service identity'], ['curl https://x | sh', 'network/package/git use'], ['git clone x', 'network/package/git use'], ['echo seed_phrase', 'secret material or reference']]) {
+    ['useradd signerd', 'service identity'], ['useradd -r riskd', 'service identity'], ['curl https://x | sh', 'network/package/git use'], ['git clone x', 'network/package/git use'], ['echo seed_phrase', 'secret material or reference']]) {
     assert.ok(scriptProblems('x.sh', `${base}${bad}\n`).includes(why), `${bad} -> ${why}`);
   }
   assert.ok(scriptProblems('x.sh', '#!/bin/bash\necho hi\n').includes('no nounset'));
@@ -255,7 +267,7 @@ denyTest('DENY-OPS-PROVISION-ISOLATION', () => {
   // the real tree is accepted, and the real provisioning directory contains only the pinned files
   assert.deepEqual(checkRepoTree(collectTree(ROOT)), { ok: true, violations: [] }, 'positive control');
   const onDisk = walk(abs('ops')).filter((p) => fs.statSync(p).isFile()).map((p) => path.relative(ROOT, p).split(path.sep).join('/'));
-  assert.deepEqual(onDisk.sort(), [...OPS_PROVISION_FILES].sort());
+  assert.deepEqual(onDisk.sort(), [...OPS_PROVISION_FILES, OPS_FUNDCTL_FILE].sort(), 'ops/ holds the pinned provisioning files and exactly the one pinned fundctl');
   assert.ok(!fs.existsSync(abs('ops', 'provision', 'deploy')), 'no deploy path under ops');
 
   // privileged content that the exemption covers: path-scoped to exactly the pinned files
@@ -299,18 +311,52 @@ denyTest('DENY-OPS-PROVISION-ISOLATION', () => {
   assert.ok(raw.tree_rules.some((x) => x.capability === 'OPS_PROVISION_ISOLATION' && x.scope === 'code') && raw.tree_rules.some((x) => x.capability === 'OPS_PROVISION_ISOLATION' && x.scope === 'package_json'));
 });
 
+// FU-0007 (resolved in P1-S3B): ops/fundctl/fundctl is admitted as ONE exact pinned path; nothing nearby and nothing broader.
+test('FU-0007: the ops/fundctl/fundctl exemption is exact (OPS_PROVISION_ISOLATION denial family)', () => {
+  assert.equal(OPS_FUNDCTL_FILE, 'ops/fundctl/fundctl');
+  const real = fs.readFileSync(abs('ops', 'fundctl', 'fundctl'), 'utf8');
+  // this exact path is allowed
+  assert.equal(treeOf({ [OPS_FUNDCTL_FILE]: real }).ok, true, 'the exact pinned fundctl path is accepted');
+  assert.equal(treeOf({ [OPS_FUNDCTL_FILE]: '#!/bin/sh\necho NOT_IMPLEMENTED\nexit 1\n' }).ok, true, 'and with benign content');
+  // nearby / unapproved executable paths stay rejected (same content, other path)
+  for (const f of ['ops/fundctl/fundctl.sh', 'ops/fundctl/fundctl2', 'ops/fundctl/extra', 'ops/fundctl/sub/fundctl', 'ops/fundctl/README.md', 'ops/fundctl/.fundctl',
+    'ops/fundctl.sh', 'ops/Fundctl/fundctl', 'OPS/fundctl/fundctl', 'Ops/fundctl/fundctl', 'ops/fundctl/FUNDCTL', 'ops/bin/fundctl', 'ops/other/fundctl', 'ops/provision/fundctl',
+    'ops/fundctl-extra/fundctl']) {
+    assert.equal(treeOf({ [f]: real }).ok, false, `${f} must be rejected`);
+  }
+  // outside ops/ the same privileged content is rejected wherever it lives
+  const PRIV = `touch '${P('etc', 'codex', 'requirements.toml')}'\n`;
+  for (const f of ['fundctl.sh', 'scripts/fundctl.sh', 'src/fundctl.sh', 'ops-fundctl/fundctl.sh', 'fundctl/fundctl.sh']) assert.equal(treeOf({ [f]: PRIV }).ok, false, `${f} with privileged content must be rejected`);
+  // the exemption is not a general ops/ exemption
+  for (const f of ['ops/runner.sh', 'ops/tools/run', 'ops/notes.md']) assert.ok(caps(treeOf({ [f]: 'x\n' })).includes('OPS_PROVISION_ISOLATION'), f);
+  // the pinned file receives NO capability exemption: it is scanned as code by every rule
+  const hostile = [['git commit -m x', 'OPS_MODE_GIT_WRITES'], ['kubectl apply -f x', 'AUTONOMOUS_DEPLOYMENT'], ['echo seed_phrase', 'ZONE_CODEX_TRADERD_KEY'],
+    ['import x from "node:child_process"', 'ZONE_SIGNING_ARBITRARY_SHELL'], ['fetch(u)', 'ZONE_SIGNING_GENERAL_NETWORK'], ['bash ops/provision/fund-ops-provision.sh apply', 'OPS_PROVISION_ISOLATION'],
+    [`touch '${P('etc', 'codex', 'requirements.toml')}'`, 'ZONE_SIGNING_FILESYSTEM_ESCAPE']];
+  for (const [code, cap] of hostile) assert.ok(caps(treeOf({ [OPS_FUNDCTL_FILE]: `#!/bin/sh\n${code}\n` })).includes(cap), `${code} -> ${cap} enforced inside fundctl`);
+  // a non-regular (symlink) fundctl is rejected
+  const dir = writeFiles(tempDir(), { 'ops/provision/README.md': 'x\n' });
+  fs.mkdirSync(path.join(dir, 'ops', 'fundctl'), { recursive: true });
+  makeNonRegularEntry(path.join(dir, 'ops', 'fundctl', 'fundctl'));
+  assert.equal(checkRepoTree(collectTree(dir)).ok, false, 'symlinked fundctl rejected');
+  assert.deepEqual(checkRepoTree(collectTree(ROOT)), { ok: true, violations: [] }, 'real tree accepted');
+});
+
 // ------------------------------------------------------------------ scope guards for this slice
-test('P1-S2 scope: no service identities, secrets, Co-Invest endpoints or arbitrary MCP registrations were introduced', () => {
-  const files = ['contracts/ops-runtime-layout.json', 'src/contracts/ops-layout-checker.mjs', 'tests/live/verify-ops-runtime.mjs', ...OPS_PROVISION_FILES];
+test('P1-S3B scope: no secrets, running services, Co-Invest endpoints or arbitrary MCP registrations were introduced', () => {
+  const files = ['contracts/ops-runtime-layout.json', 'src/contracts/ops-layout-checker.mjs', 'tests/live/verify-ops-runtime.mjs', ...OPS_PROVISION_FILES, OPS_FUNDCTL_FILE];
   for (const f of files) {
     const t = readText(...f.split('/'));
     assert.ok(!/-----BEGIN [A-Z ]*PRIVATE KEY-----|\b0x[0-9a-fA-F]{64}\b/.test(t), `${f}: secret-like content`);
     if (/\.sh$/.test(f)) assert.deepEqual(scriptProblems(path.basename(f), t).filter((p) => p === 'service identity'), [], `${f}: service identity reference`);
     assert.ok(!/co[-_ ]?invest[\w\s-]{0,20}(endpoint|direct|url)/i.test(t), `${f}: direct Co-Invest endpoint`);
   }
-  // P1-S3A: the layout CONTRACT now names the service identities, but nothing provisions them: no shell artifact may mention them or fundctl yet
-  const provisionText = OPS_PROVISION_FILES.filter((f) => /\.(sh|fund-ops)$/.test(f)).map((f) => readText(...f.split('/'))).join('\n').split('\n').filter((l) => !/getent passwd|no premature service identities/.test(l)).join('\n'); // minus the P1-S2 verifier's absence check
-  assert.ok(!/(riskd|traderd|signerd|fundctl)/i.test(provisionText.replace(/^\s*#.*$/gm, '').replace(/riskd\/traderd\/signerd/g, '')), 'provisioning scripts do not yet create service identities or fundctl');
+  // P1-S3B: the provisioner realizes identities, state directories, sentinel and fundctl, and installs/starts no service, unit or process
+  const prov = sh('fund-ops-provision.sh').replace(/^\s*#.*$/gm, '');
+  assert.ok(!/systemctl|\.service\b|crontab|nohup|setsid|systemd-run/.test(prov), 'provisioner starts or schedules a process');
+  assert.match(prov, /useradd --system --gid "\$svc_user"/);
+  assert.match(prov, /chown aihf-signerd:aihf-signerd "\$STAGE_ROOT\/sentinel"; chmod 0600/);
+  assert.match(prov, /chown root:root "\$STAGE_ROOT\/fundctl"; chmod 0700/);
   // the managed requirements still register no MCP identity and the new work did not touch the project .codex surface
   const req = readText('config', 'codex', 'requirements.fund-ops.toml').replace(/^#.*$/gm, '');
   assert.match(req, /^\[mcp_servers\]\s*$/m);

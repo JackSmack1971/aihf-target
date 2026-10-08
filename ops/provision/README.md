@@ -1,6 +1,6 @@
 # ops/provision: human-run host provisioning for the isolated fund-ops runtime
 
-`ops/provision/` is the **sole repository location authorized for human-run privileged host provisioning artifacts** (decision D-0007).
+`ops/provision/` is the **sole repository location authorized for human-run privileged host provisioning artifacts** (decision D-0007). The one other pinned path beneath `ops/` is the inert root-only operator control `ops/fundctl/fundctl` (FU-0007, P1-S3B); it receives no capability exemption.
 It is outside the model and runtime authority surface and does not create a general privileged-code exception.
 
 - Operator/administrator use only. Codex `fund-ops`, `riskd`, `traderd`, `signerd`, MCP servers and any model-facing code must never invoke, import or reference these files; the repository tripwire rejects a reference from anywhere else.
@@ -29,4 +29,4 @@ Constants live in `fund-ops-layout.sh` and mirror `contracts/ops-runtime-layout.
 
 ## What this slice does not do
 
-No `riskd`/`traderd`/`signerd` identities, no signer secret storage, no `fundctl`, no Hyperliquid connectivity, no outbound network policy. Those are later Phase 1 slices. A scratch or cloud environment run is not proof of the production identity until the same provisioning runs on the real dedicated distro.
+Since P1-S3B the provisioner also creates the `aihf-riskd`, `aihf-traderd` and `aihf-signerd` identities (private groups, no sudo, non-login), their `0700` state directories, the signerd-only `0700` secret directory holding a `0600` fixed non-secret sentinel, and installs the inert `fundctl` (`root:root` `0700`, source `ops/fundctl/fundctl`, hash-pinned; every command prints `NOT_IMPLEMENTED` and exits non-zero). None of this has been applied to a live system; the verifier's identity/ACL denial tests are run in P1-S3C. It still does not install or start any service, store any real secret, contact Hyperliquid, or set an outbound network policy; those are later slices. A scratch or cloud environment run is not proof of the production identity until the same provisioning runs on the real dedicated distro.
