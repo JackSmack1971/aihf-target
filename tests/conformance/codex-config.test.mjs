@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseToml, TomlError } from '../../src/contracts/toml-subset.mjs';
 import {
-  AGENT_ROLES, ALLOWED_CODEX_FILES, APPROVABLE_SERVERS, BOUNDARY_CLAUSE, FEATURE_PINS,
+  AGENT_ROLES, ALLOWED_CODEX_FILES, APPROVABLE_SERVERS, BOUNDARY_CLAUSE, FEATURE_PINS, REQUIREMENTS_FEATURE_PINS,
   checkProjectCodex, checkFundOpsRequirements, checkProfile,
 } from '../../src/contracts/codex-config-checker.mjs';
 import { checkMcpSurface } from '../../src/contracts/mcp-surface-checker.mjs';
@@ -101,7 +101,8 @@ test('managed requirements: generated shape is accepted and pins exactly the rev
   assert.deepEqual(d.allowed_web_search_modes, ['cached']);
   assert.equal(d.allow_managed_hooks_only, true);
   assert.equal(d.allow_browser_and_computer_use, false);
-  assert.deepEqual(d.features, FEATURE_PINS);
+  assert.deepEqual(d.features, REQUIREMENTS_FEATURE_PINS);
+  assert.equal(d.features.memories, false, 'OD-7: Memories pinned off in the managed requirements');
   for (const v of Object.values(d.features)) assert.equal(v, false);
   assert.deepEqual(d.windows, { allowed_sandbox_implementations: ['elevated'] });
 });

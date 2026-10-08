@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { readText, codexFiles, ROOT } from '../helpers.mjs';
 import { parseToml } from '../../src/contracts/toml-subset.mjs';
 import {
-  AGENT_ROLES, BOUNDARY_CLAUSE, FEATURE_PINS, checkProjectCodex, checkFundOpsRequirements, checkProfile, expectedAuthority,
+  AGENT_ROLES, BOUNDARY_CLAUSE, FEATURE_PINS, REQUIREMENTS_FEATURE_PINS, checkProjectCodex, checkFundOpsRequirements, checkProfile, expectedAuthority,
 } from '../../src/contracts/codex-config-checker.mjs';
 
 const REQ = () => readText('config', 'codex', 'requirements.fund-ops.toml');
@@ -70,8 +70,8 @@ test('requirements: full/danger access, weaker approvals, live web and browser/c
     ['unelevated sandbox', swap(R, 'allowed_sandbox_implementations = ["elevated"]', 'allowed_sandbox_implementations = ["elevated", "unelevated"]')],
   ];
   for (const [label, text] of cases) rejects(checkFundOpsRequirements(text), P, label);
-  for (const k of Object.keys(FEATURE_PINS)) rejects(checkFundOpsRequirements(swapLine(R, k, `${k} = true`)), P, `feature ${k}=true`);
-  for (const k of Object.keys(FEATURE_PINS)) rejects(checkFundOpsRequirements(swapLine(R, k, '')), P, `feature ${k} unpinned`);
+  for (const k of Object.keys(REQUIREMENTS_FEATURE_PINS)) rejects(checkFundOpsRequirements(swapLine(R, k, `${k} = true`)), P, `feature ${k}=true`);
+  for (const k of Object.keys(REQUIREMENTS_FEATURE_PINS)) rejects(checkFundOpsRequirements(swapLine(R, k, '')), P, `feature ${k} unpinned`);
 });
 
 test('requirements: unreviewed keys, an absent MCP table and malformed TOML are rejected', () => {

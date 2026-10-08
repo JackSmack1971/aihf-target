@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "note": "Canonical OS layout of the isolated fund-ops runtime (Phase 1, slice P1-S2; decisions D-0007). ops/provision/fund-ops-layout.sh mirrors these values and tests/conformance/ops-provision.test.mjs enforces parity. src/contracts/ops-layout-checker.mjs pins the invariants. The security properties come from managed Codex requirements, Unix identities and ownership, a root-owned release, and the absence of Windows interop, not from WSL itself. The ops HOME is sticky and root-owned like the Codex home because documented user skill roots live under HOME. No service identity (riskd, traderd, signerd) and no secret path exists in this slice.",
+  "note": "Canonical OS layout of the isolated fund-ops runtime (Phase 1, slice P1-S2; decisions D-0007) extended in P1-S3A (D-0009) with the CONTRACT for the riskd, traderd and signerd service identities, their private state directories, the signerd-only secret directory and the root-owned fundctl. P1-S3A defines contracts only: nothing here is provisioned yet and ops/provision/ mirrors only the P1-S2 entries. ops/provision/fund-ops-layout.sh mirrors the P1-S2 values and tests/conformance/ops-provision.test.mjs enforces parity. src/contracts/ops-layout-checker.mjs pins the invariants. The security properties come from managed Codex requirements, Unix identities and ownership, a root-owned release, and the absence of Windows interop, not from WSL itself; the Windows administrator/operator is Zone 0 trust (OD-5 accepted residual risk). The ops HOME is sticky and root-owned like the Codex home because documented user skill roots live under HOME. The signer sentinel is a fixed non-secret marker; no real secret material, key or seed exists in or is created from this contract.",
   "runtime": {
     "platform": "wsl2-ubuntu-dedicated-distro",
     "codex_version_pin": "0.160.1",
@@ -30,6 +30,39 @@
       "group": "aihf-ops",
       "home": "/var/lib/aihf/ops/home",
       "shell": "/bin/bash",
+      "system_account": true,
+      "password": "locked",
+      "sudo": false,
+      "supplementary_groups": []
+    },
+    {
+      "id": "riskd",
+      "user": "aihf-riskd",
+      "group": "aihf-riskd",
+      "home": "/var/lib/aihf/riskd",
+      "shell": "/usr/sbin/nologin",
+      "system_account": true,
+      "password": "locked",
+      "sudo": false,
+      "supplementary_groups": []
+    },
+    {
+      "id": "traderd",
+      "user": "aihf-traderd",
+      "group": "aihf-traderd",
+      "home": "/var/lib/aihf/traderd",
+      "shell": "/usr/sbin/nologin",
+      "system_account": true,
+      "password": "locked",
+      "sudo": false,
+      "supplementary_groups": []
+    },
+    {
+      "id": "signerd",
+      "user": "aihf-signerd",
+      "group": "aihf-signerd",
+      "home": "/var/lib/aihf/signerd",
+      "shell": "/usr/sbin/nologin",
       "system_account": true,
       "password": "locked",
       "sudo": false,
@@ -164,6 +197,62 @@
       "group": "aihf-ops",
       "mode": "0700",
       "role": "ops_writable"
+    },
+    {
+      "path": "/var/lib/aihf/riskd",
+      "type": "dir",
+      "owner": "aihf-riskd",
+      "group": "aihf-riskd",
+      "mode": "0700",
+      "role": "service_state"
+    },
+    {
+      "path": "/var/lib/aihf/traderd",
+      "type": "dir",
+      "owner": "aihf-traderd",
+      "group": "aihf-traderd",
+      "mode": "0700",
+      "role": "service_state"
+    },
+    {
+      "path": "/var/lib/aihf/signerd",
+      "type": "dir",
+      "owner": "aihf-signerd",
+      "group": "aihf-signerd",
+      "mode": "0700",
+      "role": "service_state"
+    },
+    {
+      "path": "/var/lib/aihf/signerd/secrets",
+      "type": "dir",
+      "owner": "aihf-signerd",
+      "group": "aihf-signerd",
+      "mode": "0700",
+      "role": "signer_secret"
+    },
+    {
+      "path": "/var/lib/aihf/signerd/secrets/sentinel",
+      "type": "file",
+      "owner": "aihf-signerd",
+      "group": "aihf-signerd",
+      "mode": "0600",
+      "role": "signer_secret"
+    },
+    {
+      "path": "/usr/local/sbin",
+      "type": "dir",
+      "owner": "root",
+      "group": "root",
+      "mode": "0755",
+      "role": "operator_control"
+    },
+    {
+      "path": "/usr/local/sbin/fundctl",
+      "type": "file",
+      "owner": "root",
+      "group": "root",
+      "mode": "0700",
+      "role": "operator_control"
     }
   ],
   "codex_home_protected": [
@@ -255,6 +344,29 @@
       "mode": "0644"
     }
   ],
+  "fundctl": {
+    "install_path": "/usr/local/sbin/fundctl",
+    "source_path": "ops/fundctl/fundctl",
+    "owner": "root",
+    "group": "root",
+    "mode": "0700",
+    "executable_by_ops": false,
+    "network": false,
+    "secrets": false,
+    "commands": [
+      "status",
+      "arm",
+      "disarm",
+      "halt",
+      "flatten",
+      "activate-release",
+      "activate-policy",
+      "rotate-agent"
+    ],
+    "command_result": "NOT_IMPLEMENTED",
+    "fail_closed": true,
+    "exit_nonzero": true
+  },
   "wsl": {
     "automount_enabled": false,
     "interop_enabled": false,

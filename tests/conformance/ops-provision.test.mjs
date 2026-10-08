@@ -25,10 +25,12 @@ const sha = (s) => crypto.createHash('sha256').update(lf(s)).digest('hex');
 const sh = (name) => readText('ops', 'provision', name);
 
 // ------------------------------------------------------------------ layout contract
-test('ops layout: shipped contract is accepted and describes exactly one unprivileged identity', () => {
+test('ops layout: shipped contract is accepted; ops plus three non-login, sudo-less service identities with private groups', () => {
   assert.deepEqual(checkOpsLayout(LAYOUT()), { ok: true, violations: [] });
   const d = LAYOUT();
-  assert.equal(d.identities.length, 1);
+  assert.deepEqual(d.identities.map((i) => i.id), ['ops', 'riskd', 'traderd', 'signerd']);
+  for (const i of d.identities) { assert.equal(i.sudo, false); assert.deepEqual(i.supplementary_groups, []); assert.equal(i.password, 'locked'); assert.equal(i.user, i.group); }
+  assert.deepEqual(d.identities.slice(1).map((i) => i.shell), ['/usr/sbin/nologin', '/usr/sbin/nologin', '/usr/sbin/nologin']);
   assert.equal(d.identities[0].user, 'aihf-ops');
   assert.equal(d.identities[0].sudo, false);
   assert.deepEqual(d.identities[0].supplementary_groups, []);
@@ -80,12 +82,12 @@ denyTest('DENY-OPS-RUNTIME-BOUNDARY', () => {
   for (const bad of [P('var', 'lib', '..', 'x'), P('var', 'lib', '.', 'x'), 'relative/path', `${P('var', 'lib', 'aihf')}/`, P('var', '', 'x')]) rejects(mut((d) => { d.entries.push({ path: bad, type: 'dir', owner: 'root', group: 'root', mode: '0755', role: 'state_parent' }); }), /normalized|absolute/, `path ${bad}`);
   // each of these is caught ONLY by the check named in the label (mutation-check survivors turned into tests)
   rejects(mut((d) => { const e = entry(d, P('var', 'lib', 'aihf', 'runtime')); e.role = 'ops_writable'; e.owner = 'aihf-ops'; e.group = 'aihf-ops'; e.mode = '0700'; }), /must be root-owned and not group/, 'runtime parent made ops-owned by a role change (scratch could be renamed away)');
-  rejects(mut((d) => { d.identities.push(clone(d.identities[0])); }), /exactly one identity/, 'duplicate ops identity');
+  rejects(mut((d) => { d.identities.push(clone(d.identities[0])); }), /identities must be exactly/, 'duplicate ops identity');
   rejects(mut((d) => { d.entries.push({ path: P('mnt', 'c', 'aihf'), type: 'dir', owner: 'root', group: 'root', mode: '0755', role: 'state_parent' }); }), /must not be under/, 'declared path on a Windows mount');
   rejects(mut((d) => { d.entries.push({ path: P('var', 'lib', 'aihf', 'runtime', 'releases'), type: 'dir', owner: 'root', group: 'root', mode: '0755', role: 'release' }); }), /overlap/, 'release declared inside the mutable runtime');
   rejects(mut((d) => { d.entries.push({ path: P('var', 'lib', 'aihf', 'ops', 'codex-home', 'policy'), type: 'dir', owner: 'root', group: 'root', mode: '0755', role: 'managed_policy' }); }), /overlap/, 'managed policy declared inside the Codex home');
   // no service identity, no second identity, no privilege on the ops account
-  rejects(mut((d) => { d.identities.push({ ...d.identities[0], id: 'signerd', user: 'aihf-signerd', group: 'aihf-signerd' }); }), /exactly one identity|service identity/, 'second identity');
+  rejects(mut((d) => { d.identities.push({ ...d.identities[0], id: 'signerd', user: 'aihf-signerd', group: 'aihf-signerd' }); }), /identities must be exactly/, 'extra identity beyond ops, riskd, traderd, signerd');
   rejects(mut((d) => { d.identities[0].user = 'traderd'; }), /service identity|ops identity must be/, 'ops identity renamed to a service');
   rejects(mut((d) => { d.identities[0].sudo = true; }), /no sudo/, 'sudo');
   rejects(mut((d) => { d.identities[0].supplementary_groups = ['sudo']; }), /supplementary groups/, 'group sudo');
@@ -135,7 +137,8 @@ test('ops provision: fund-ops-layout.sh mirrors contracts/ops-runtime-layout.jso
   assert.equal(vars.AIHF_STATE, r.state);
   assert.equal(vars.AIHF_CODEX_HOME, r.codex_home);
   const wantDirs = d.entries.filter((e) => e.type === 'dir' && e.role !== 'toolchain' || e.path === P('opt', 'aihf', 'toolchain') || e.path === P('opt', 'aihf', 'bin'))
-    .filter((e) => e.path !== P('opt', 'aihf', 'toolchain', 'codex'));
+    .filter((e) => e.path !== P('opt', 'aihf', 'toolchain', 'codex'))
+    .filter((e) => !['service_state', 'signer_secret', 'operator_control'].includes(e.role)); // P1-S3A contract-only roles: provisioning not started
   assert.deepEqual(dirs.map((x) => x.join(' ')).sort(), wantDirs.map((e) => `${e.path} ${e.owner} ${e.group} ${e.mode}`).sort());
   assert.deepEqual(prot.map((x) => x.join(' ')).sort(), d.codex_home_protected.map((p) => `${p.name} ${p.type} ${p.mode}`).sort());
   const homeProt = shellVars(sh('fund-ops-layout.sh')).homeProt;
@@ -305,8 +308,9 @@ test('P1-S2 scope: no service identities, secrets, Co-Invest endpoints or arbitr
     if (/\.sh$/.test(f)) assert.deepEqual(scriptProblems(path.basename(f), t).filter((p) => p === 'service identity'), [], `${f}: service identity reference`);
     assert.ok(!/co[-_ ]?invest[\w\s-]{0,20}(endpoint|direct|url)/i.test(t), `${f}: direct Co-Invest endpoint`);
   }
-  const ident = JSON.stringify(LAYOUT().identities);
-  assert.ok(!/(riskd|traderd|signerd)/i.test(ident));
+  // P1-S3A: the layout CONTRACT now names the service identities, but nothing provisions them: no shell artifact may mention them or fundctl yet
+  const provisionText = OPS_PROVISION_FILES.filter((f) => /\.(sh|fund-ops)$/.test(f)).map((f) => readText(...f.split('/'))).join('\n').split('\n').filter((l) => !/getent passwd|no premature service identities/.test(l)).join('\n'); // minus the P1-S2 verifier's absence check
+  assert.ok(!/(riskd|traderd|signerd|fundctl)/i.test(provisionText.replace(/^\s*#.*$/gm, '').replace(/riskd\/traderd\/signerd/g, '')), 'provisioning scripts do not yet create service identities or fundctl');
   // the managed requirements still register no MCP identity and the new work did not touch the project .codex surface
   const req = readText('config', 'codex', 'requirements.fund-ops.toml').replace(/^#.*$/gm, '');
   assert.match(req, /^\[mcp_servers\]\s*$/m);
