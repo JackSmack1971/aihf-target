@@ -57,7 +57,7 @@ Evidence levels are never merged: `CONFIG_LOAD_VERIFIED`, `RUNTIME_ENFORCEMENT_V
 | Inherited environment secrets | default sessions inherit Windows variables | launcher clean environment; no credentials are passed |
 | Shared SSH/Git credentials | host `.ssh`, `.gitconfig` visible through `/mnt/c` | gone with automount; the distro has no Git or SSH configuration for the ops identity |
 
-## Residual risks and open items (the Phase 1 exit gate stays open)
+## Residual risks and open items (Phase 1 exit gate satisfied in P1-S3C with these residuals accepted or deferred; blueprint reconciliation precedes Phase 2)
 
 - **R1 Windows operator account.** `wsl -d <distro> -u root` needs no password, and the vhdx is readable from Windows. A developer sharing that Windows account can reach root in the fund-ops distro. Production needs the fund-ops distro under a separate Windows account or on a separate host. Accepted residual risk, not a Phase 1 blocker: the Windows administrator/operator is Zone 0 trust (OD-5, resolved in D-0009 item 1); it must not be described as Windows-administrator-proof isolation.
 - **R10 Windows drive re-mount.** `automount = false` only prevents the automatic mount; root inside the distro can still `mount -t drvfs`, and any such mount exposes the host to the ops identity (see the table). Only the operator is root in the distro, but the verifier's `--expect-hardened-wsl` run (no read-write 9p/drvfs mount, `/mnt/c` empty) must be part of every launch gate, and a later slice should make the check continuous.
