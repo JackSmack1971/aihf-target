@@ -33,6 +33,7 @@ fi
 EXT=/var/tmp/fu0011-ext
 SD=/var/lib/aihf/signerd; SEC=$SD/secrets; SENT=$SEC/sentinel
 VICTIM_MARK="FU0011-EXTERNAL-VICTIM"
+DECOY_MARK="FU0011-""DECOY" # assembled at run time: a release copies this source under /opt/aihf, which the exposure scan covers
 npass=0; nfail=0
 pass() { echo "PASS    $1"; npass=$((npass + 1)); }
 fail() { echo "FAIL    $1"; nfail=$((nfail + 1)); }
@@ -51,7 +52,7 @@ fresh_ext() { # an external world the provisioner must never touch: only harmles
   rm -rf --one-file-system -- "$EXT"
   install -d -o root -g root -m 0755 "$EXT" "$EXT/victim-dir" "$EXT/fake-runtime" "$EXT/fake-runtime/scratch" "$EXT/fake-runtime/state" "$EXT/fake-ops" "$EXT/fake-ops/home" "$EXT/fake-ops/codex-home"
   printf '%s\n' "$VICTIM_MARK" > "$EXT/victim-dir/victim-file"; chmod 0644 "$EXT/victim-dir/victim-file"
-  { printf '%s\n' "FU0011-DECOY secret-like material (synthetic)"; printf '0x%064d\n' 0; printf '%s %s %s\n' '-----BEGIN' 'FAKE' 'PRIVATE KEY-----'; } > "$EXT/victim-dir/decoy"; chmod 0600 "$EXT/victim-dir/decoy"
+  { printf '%s\n' "$DECOY_MARK secret-like material (synthetic)"; printf '0x%064d\n' 0; printf '%s %s %s\n' '-----BEGIN' 'FAKE' 'PRIVATE KEY-----'; } > "$EXT/victim-dir/decoy"; chmod 0600 "$EXT/victim-dir/decoy"
   chown aihf-ops:aihf-ops "$EXT/fake-runtime/scratch" "$EXT/fake-runtime/state" 2>/dev/null; chmod 0700 "$EXT/fake-runtime/scratch" "$EXT/fake-runtime/state"
   chown root:aihf-ops "$EXT/fake-ops/home" "$EXT/fake-ops/codex-home" 2>/dev/null; chmod 1770 "$EXT/fake-ops/home" "$EXT/fake-ops/codex-home"
 }
@@ -73,9 +74,9 @@ drop_paths() { # snapshot on stdin, excluded path prefixes as arguments (the pla
 }
 secret_scan_clean() { # the log and every provisioned tree must hold no decoy or secret-like material
   local log="$1"
-  grep -qE -e "FU0011-DECOY|0x[0-9a-fA-F]{64}|-----BEGIN [A-Z ]*PRIVATE KEY-----" "$log" && return 1
+  grep -qE -e "$DECOY_MARK|0x[0-9a-fA-F]{64}|-----BEGIN [A-Z ]*PRIVATE KEY-----" "$log" && return 1
   # find -P never follows a link given as a starting point, so a planted link is not itself scanned (the decoy lives only in the external world)
-  [ -z "$(find -P /opt/aihf /etc/codex /var/lib/aihf/runtime /var/lib/aihf/ops /var/lib/aihf/riskd /var/lib/aihf/traderd /var/lib/aihf/signerd -xdev -type f -exec grep -lF 'FU0011-DECOY' {} + 2>/dev/null | head -1)" ]
+  [ -z "$(find -P /opt/aihf /etc/codex /var/lib/aihf/runtime /var/lib/aihf/ops /var/lib/aihf/riskd /var/lib/aihf/traderd /var/lib/aihf/signerd -xdev -type f -exec grep -lF "$DECOY_MARK" {} + 2>/dev/null | head -1)" ]
 }
 
 # ---------------------------------------------------------------- planting helpers
