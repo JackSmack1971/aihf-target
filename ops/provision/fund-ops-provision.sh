@@ -42,6 +42,115 @@ act() { if [ "$APPLY" -eq 1 ]; then "$@"; else echo "PLAN    $*"; fi; }
 lf_sha() { tr -d '\r' < "$1" | sha256sum | cut -d' ' -f1; }
 pinned() { awk -v f="$1" '$2 == f { print $1 }' "$HERE/canonical-artifacts.sha256"; }
 
+# ---------------------------------------------------------------- safe privileged path handling (FU-0011 / R15)
+# Invariant: privileged mutation never follows or trusts a filesystem object that a lower-trust identity (ops or a service) can replace.
+# Every path that root creates, chowns, chmods or renames into is walked component by component. Each component is examined with a NON-following stat,
+# opened, and the open descriptor must be the very object that was examined (same type, owner, mode, device and inode). The next component is then
+# resolved relative to that descriptor (/proc/self/fd/N), so a swap after the check cannot redirect the walk, and the mutation is applied THROUGH the
+# verified descriptor. A symbolic link, any non-directory, a foreign owner or an untrusted ancestor is refused, never repaired through. Nothing is recursive.
+unsafe() { die "unsafe path $1: $2"; }
+PMETA='%F|%u|%g|%a|%h|%d:%i'
+lmeta() { stat -c "$PMETA" -- "$1" 2>/dev/null; }            # does not follow the final component
+fdmeta() { stat -L -c "$PMETA" -- "/proc/self/fd/$1" 2>/dev/null; }
+SAFE_FDS=(); SAFE_FD=""; SAFE_CREATED=0
+safe_close() { local f; for f in "${SAFE_FDS[@]}"; do exec {f}<&-; done; SAFE_FDS=(); SAFE_FD=""; }
+table_owner() { local row p o g m; for row in "${AIHF_DIRS[@]}"; do read -r p o g m <<<"$row"; if [ "$p" = "$1" ]; then echo "$o:$g"; return 0; fi; done; return 0; }
+getent_exists() { # exit 0 = present, 2 = absent; any other failure is refused, never read as "absent"
+  local rc=0; getent "$@" >/dev/null || rc=$?
+  case "$rc" in 0) return 0 ;; 2) return 1 ;; *) die "getent $* failed (exit $rc); cannot establish whether the account or group exists" ;; esac
+}
+safe_walk() { # abs_path create(0|1): sets SAFE_FD to the verified descriptor of the last component; SAFE_CREATED=1 if it was made by this call
+  local path="$1" create="$2" cur="" cand prev="" meta type u g mode nl ident fd i n own c
+  local -a comps
+  SAFE_CREATED=0
+  [[ "$path" =~ ^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] || unsafe "$path" "is not a normalized absolute path"
+  IFS=/ read -ra comps <<<"${path#/}"; n=${#comps[@]}
+  for c in "${comps[@]}"; do if [ "$c" = . ] || [ "$c" = .. ]; then unsafe "$path" "contains a dot component"; fi; done
+  for ((i = 0; i < n; i++)); do
+    cur="$cur/${comps[$i]}"
+    if [ -z "$prev" ]; then cand="$cur"; else cand="/proc/self/fd/$prev/${comps[$i]}"; fi
+    meta=$(lmeta "$cand") || meta=""
+    if [ -z "$meta" ]; then
+      if [ "$i" -eq $((n - 1)) ] && [ "$create" -eq 1 ]; then
+        mkdir -m 0700 -- "$cand" || unsafe "$cur" "cannot be created"
+        SAFE_CREATED=1; meta=$(lmeta "$cand") || unsafe "$cur" "vanished right after creation"
+      else unsafe "$cur" "does not exist"; fi
+    fi
+    IFS='|' read -r type u g mode nl ident <<<"$meta"
+    [ "$type" != "symbolic link" ] || unsafe "$cur" "is a symbolic link"
+    [ "$type" = directory ] || unsafe "$cur" "is not a directory (type: $type)"
+    exec {fd}<"$cand" || unsafe "$cur" "cannot be opened"
+    SAFE_FDS+=("$fd")
+    [ "$(fdmeta "$fd")" = "$meta" ] || unsafe "$cur" "changed between inspection and open"
+    if [ "$i" -lt $((n - 1)) ]; then # an ancestor must be unreplaceable by a lower-trust identity: root-owned and not group/other-writable, or a layout directory with its layout owner
+      if [ "$u" -ne 0 ] || [ $((8#$mode & 8#022)) -ne 0 ]; then
+        own=$(table_owner "$cur")
+        [ -n "$own" ] && [ "$(stat -L -c '%U:%G' -- "/proc/self/fd/$fd")" = "$own" ] || unsafe "$cur" "is an ancestor that is neither root-owned without group/other write nor a layout directory with its layout owner"
+      fi
+    fi
+    prev="$fd"
+  done
+  SAFE_FD="$prev"
+}
+safe_dir() { # path owner group mode: create or verify a real directory; only its mode is converged, through the verified descriptor
+  local p="$1" o="$2" g="$3" m="$4" fdp og mode
+  safe_walk "$p" 1; fdp="/proc/self/fd/$SAFE_FD"
+  if [ "$SAFE_CREATED" -eq 1 ]; then chown -- "$o:$g" "$fdp"
+  else
+    og=$(stat -L -c '%U:%G' -- "$fdp")
+    [ "$og" = "$o:$g" ] || unsafe "$p" "owner:group is $og, the layout requires $o:$g (refusing to chown through it)"
+  fi
+  mode=$(stat -L -c '%a' -- "$fdp")
+  if [ "$mode" != "${m#0}" ]; then
+    chmod -- "$m" "$fdp"
+    [ "$SAFE_CREATED" -eq 1 ] || echo "WARN    $p mode was $mode, restored to $m"
+  fi
+  safe_close
+}
+safe_chmod_root_dir() { # path mode: chmod an existing root-owned real directory through its verified descriptor
+  safe_walk "$1" 0
+  [ "$(stat -L -c '%U' -- "/proc/self/fd/$SAFE_FD")" = root ] || unsafe "$1" "is not root-owned"
+  chmod -- "$2" "/proc/self/fd/$SAFE_FD"; safe_close
+}
+safe_install_file() { # staged_file dest: atomically replace a regular file inside a verified layout directory; never follows or overwrites anything else
+  local src="$1" dest="$2" dir name target meta type u g mode nl ident want
+  dir=$(dirname -- "$dest"); name=$(basename -- "$dest")
+  want=$(table_owner "$dir"); [ -n "$want" ] || unsafe "$dir" "is not a layout directory"
+  safe_walk "$dir" 0
+  [ "$(stat -L -c '%U:%G' -- "/proc/self/fd/$SAFE_FD")" = "$want" ] || unsafe "$dir" "owner:group differs from the layout owner $want"
+  target="/proc/self/fd/$SAFE_FD/$name"
+  if meta=$(lmeta "$target"); then
+    IFS='|' read -r type u g mode nl ident <<<"$meta"
+    [ "$type" != "symbolic link" ] || unsafe "$dest" "is a symbolic link"
+    case "$type" in "regular file"|"regular empty file") ;; *) unsafe "$dest" "is not a regular file (type: $type)" ;; esac
+    [ "$nl" -eq 1 ] || unsafe "$dest" "has $nl hard links"
+    [ "$(stat -c '%U:%G' -- "$target")" = "$want" ] || unsafe "$dest" "owner:group is $(stat -c '%U:%G' -- "$target"), the layout requires $want"
+  fi
+  mv -T -- "$src" "$target"; safe_close
+}
+# processes: matched by NUMERIC uid (real, effective, saved or filesystem), never by name or command line, for the ops identity and every service identity
+identity_has_processes() { # uid
+  local f line k ru eu su fu rest
+  for f in /proc/[0-9]*/status; do
+    [ -r "$f" ] || continue
+    line=$(grep -m1 '^Uid:' "$f" 2>/dev/null) || continue
+    read -r k ru eu su fu rest <<<"$line"
+    if [ "$ru" = "$1" ] || [ "$eu" = "$1" ] || [ "$su" = "$1" ] || [ "$fu" = "$1" ]; then return 0; fi
+  done
+  return 1
+}
+require_no_identity_processes() {
+  local u uid row svc_u svc_h
+  [ -r /proc/self/status ] || die "/proc is not readable; cannot check for running ops or service processes"
+  local -a names=("$AIHF_OPS_USER")
+  for row in "${AIHF_SERVICES[@]}"; do read -r svc_u svc_h <<<"$row"; names+=("$svc_u"); done
+  for u in "${names[@]}"; do
+    getent_exists passwd "$u" || continue # an account that does not exist yet owns no processes
+    uid=$(id -u "$u"); [[ "$uid" =~ ^[0-9]+$ ]] || die "cannot resolve the uid of $u"
+    if identity_has_processes "$uid"; then die "processes owned by $u (uid $uid) are running; run 'wsl --terminate <distro>' and provision from a fresh start"; fi
+  done
+}
+
 # ---------------------------------------------------------------- preflight (read-only)
 step "preflight"
 [ "$(uname -s)" = "Linux" ] || die "Linux only (the canonical runtime is a dedicated WSL2 Ubuntu distro)"
@@ -54,34 +163,31 @@ if [ "$APPLY" -eq 1 ]; then
   [ -n "$CODEX_SRC" ] && [ -x "$CODEX_SRC/bin/codex" ] || die "--codex-dir must contain an executable bin/codex"
   [ "$(sha256sum "$CODEX_SRC/bin/codex" | cut -d' ' -f1)" = "$AIHF_CODEX_SHA256" ] || die "the Codex binary differs from the pinned SHA-256 (it is not executed as root until it matches)"
   [ "$("$CODEX_SRC/bin/codex" --version 2>/dev/null)" = "codex-cli $AIHF_CODEX_PIN" ] || die "Codex version differs from the pin $AIHF_CODEX_PIN"
-  # a running ops process could race the replacement of protected names: refuse (stop the distro and provision from a fresh start)
-  # (an account that does not exist yet owns no processes, and pgrep exits 2 for an unknown user name, so only check an existing account)
-  if getent passwd "$AIHF_OPS_USER" >/dev/null; then
-    pgrep -u "$AIHF_OPS_USER" >/dev/null 2>&1 && pg=0 || pg=$?
-    [ "$pg" -eq 1 ] || die "processes of $AIHF_OPS_USER are running or could not be checked (pgrep exit $pg); run 'wsl --terminate <distro>' and provision from a fresh start"
-  fi
+  # a running ops or service process could race the replacement of protected names or plant a link in its own tree during re-apply: refuse
+  # (stop the distro and provision from a fresh start). Keyed on numeric uid; a getent failure is refused, never read as "no such account".
+  require_no_identity_processes
   if [ -n "$NODE_SRC" ]; then [ -x "$NODE_SRC/bin/node" ] || die "--node-dir must contain bin/node"; fi
 fi
 
 # ---------------------------------------------------------------- identity
 step "dedicated unprivileged identity $AIHF_OPS_USER"
-if ! getent group "$AIHF_OPS_GROUP" >/dev/null; then act groupadd --system "$AIHF_OPS_GROUP"; fi
-if ! getent passwd "$AIHF_OPS_USER" >/dev/null; then
+if ! getent_exists group "$AIHF_OPS_GROUP"; then act groupadd --system "$AIHF_OPS_GROUP"; fi
+if ! getent_exists passwd "$AIHF_OPS_USER"; then
   act useradd --system --gid "$AIHF_OPS_GROUP" --home-dir "$AIHF_OPS_HOME" --no-create-home --shell "$AIHF_OPS_SHELL" --comment "AIHF fund-ops (unprivileged)" "$AIHF_OPS_USER"
 else
   [ "$(id -u "$AIHF_OPS_USER")" -ne 0 ] || die "$AIHF_OPS_USER has uid 0"
   [ "$(id -nG "$AIHF_OPS_USER")" = "$AIHF_OPS_GROUP" ] || die "$AIHF_OPS_USER has supplementary groups ($(id -nG "$AIHF_OPS_USER")); refusing to continue"
 fi
 if grep -rEq -e "(^|[^[:alnum:]_-])%?$AIHF_OPS_USER([^[:alnum:]_-]|\$)" /etc/sudoers /etc/sudoers.d 2>/dev/null; then die "$AIHF_OPS_USER is referenced in sudoers"; fi
-if [ "$APPLY" -eq 1 ] && getent passwd "$AIHF_OPS_USER" >/dev/null; then sudo -n -l -U "$AIHF_OPS_USER" 2>&1 | grep -qi 'not allowed' || die "$AIHF_OPS_USER has sudo rights"; fi
+if [ "$APPLY" -eq 1 ] && getent_exists passwd "$AIHF_OPS_USER"; then sudo -n -l -U "$AIHF_OPS_USER" 2>&1 | grep -qi 'not allowed' || die "$AIHF_OPS_USER has sudo rights"; fi
 act passwd -l "$AIHF_OPS_USER" >/dev/null
 
 # ---------------------------------------------------------------- service identities (P1-S3B; identities and directories only, no service is installed or started)
 step "service identities (private group, no supplementary groups, no sudo, locked password, non-login shell)"
 for row in "${AIHF_SERVICES[@]}"; do
   read -r svc_user svc_home <<<"$row"
-  if ! getent group "$svc_user" >/dev/null; then act groupadd --system "$svc_user"; fi
-  if ! getent passwd "$svc_user" >/dev/null; then
+  if ! getent_exists group "$svc_user"; then act groupadd --system "$svc_user"; fi
+  if ! getent_exists passwd "$svc_user"; then
     act useradd --system --gid "$svc_user" --home-dir "$svc_home" --no-create-home --shell "$AIHF_SERVICE_SHELL" --comment "AIHF service identity (unprivileged)" "$svc_user"
   else
     [ "$(id -u "$svc_user")" -ne 0 ] || die "$svc_user has uid 0"
@@ -91,16 +197,15 @@ for row in "${AIHF_SERVICES[@]}"; do
   # a private group has no member other than its owner: never shared with aihf-ops or another service
   [ -z "$(getent group "$svc_user" | cut -d: -f4)" ] || die "group $svc_user has explicit members (private groups have none)"
   if grep -rEq -e "(^|[^[:alnum:]_-])%?$svc_user([^[:alnum:]_-]|\$)" /etc/sudoers /etc/sudoers.d 2>/dev/null; then die "$svc_user is referenced in sudoers"; fi
-  if [ "$APPLY" -eq 1 ] && getent passwd "$svc_user" >/dev/null; then sudo -n -l -U "$svc_user" 2>&1 | grep -qi 'not allowed' || die "$svc_user has sudo rights"; fi
+  if [ "$APPLY" -eq 1 ] && getent_exists passwd "$svc_user"; then sudo -n -l -U "$svc_user" 2>&1 | grep -qi 'not allowed' || die "$svc_user has sudo rights"; fi
   act passwd -l "$svc_user" >/dev/null
 done
 
 # ---------------------------------------------------------------- directories
-step "directory layout (ownership and modes from the layout table)"
+step "directory layout (ownership and modes from the layout table; links, foreign owners and untrusted ancestors are refused, never followed)"
 for row in "${AIHF_DIRS[@]}"; do
   read -r p o g m <<<"$row"
-  act install -d -o "$o" -g "$g" -m "$m" "$p"
-  act chmod "$m" "$p"
+  act safe_dir "$p" "$o" "$g" "$m"
 done
 
 # ---------------------------------------------------------------- toolchain (root-owned)
@@ -172,7 +277,7 @@ install_protected() { # home_dir, rows...
     fi
     # keep an existing root-owned real directory whose whole tree is root-owned; otherwise replace it (it may have been planted)
     if [ "$t" = dir ] && [ -d "$p" ] && [ ! -L "$p" ] && [ "$(stat -c %U "$p")" = root ] && [ -z "$(find "$p" ! -user root -print -quit)" ] && [ -z "$(find "$p" -mindepth 1 -print -quit)" ]; then
-      chmod "$m" "$p"
+      safe_chmod_root_dir "$p" "$m"
       continue
     fi
     if [ -e "$p" ] || [ -L "$p" ]; then
@@ -193,7 +298,7 @@ FC_WANT=$(pinned "$AIHF_FUNDCTL_SOURCE")
 if [ "$APPLY" -eq 1 ]; then
   printf '%s\n' "$AIHF_SIGNER_SENTINEL_CONTENT" > "$STAGE_ROOT/sentinel"
   chown aihf-signerd:aihf-signerd "$STAGE_ROOT/sentinel"; chmod 0600 "$STAGE_ROOT/sentinel"
-  mv -T -- "$STAGE_ROOT/sentinel" "$AIHF_SIGNER_SENTINEL"
+  safe_install_file "$STAGE_ROOT/sentinel" "$AIHF_SIGNER_SENTINEL"
   tr -d '\r' < "$FC_SRC" > "$STAGE_ROOT/fundctl"
   [ "$(sha256sum "$STAGE_ROOT/fundctl" | cut -d' ' -f1)" = "$FC_WANT" ] || die "staged fundctl hash mismatch"
   chown root:root "$STAGE_ROOT/fundctl"; chmod 0700 "$STAGE_ROOT/fundctl"

@@ -6,3 +6,6 @@ contracts/ops-runtime-layout.json text eol=lf
 
 # fundctl is a byte-stable root-only script: LF endings on every checkout (its SHA-256 is pinned).
 ops/fundctl/fundctl text eol=lf
+
+# Live harness shell scripts run inside a Linux distro: LF endings on every checkout.
+tests/live/*.sh text eol=lf

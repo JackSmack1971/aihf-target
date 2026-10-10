@@ -243,9 +243,12 @@ test('ops provision: provisioner is plan-by-default, root-gated, refuses silent 
   assert.match(t, /tmp="\$STAGE_ROOT\/\$n"/, 'staged names live under the root-only directory');
   assert.ok(!/"\$p\.tmp\.\$\$"/.test(t), 'no predictable temp name is created inside a group-writable home');
   assert.match(t, /mv -T -- "\$tmp" "\$p"/, 'atomic rename replaces anything planted at the final name');
-  assert.match(t, /pgrep -u "\$AIHF_OPS_USER"/, 'refuses to provision while ops processes run');
-  // P1-S3C live finding: pgrep exits 2 for a user that does not exist yet, which refused every fresh-distro apply; the check applies only to an existing account
-  assert.match(t, /if getent passwd "\$AIHF_OPS_USER" >\/dev\/null; then\n\s+pgrep -u "\$AIHF_OPS_USER"[^\n]*\n\s+\[ "\$pg" -eq 1 \] \|\| die [^\n]*\n\s+fi/, 'the ops-process check runs only when the ops account already exists (a fresh distro has none)');
+  // FU-0011 (supersedes the P1-S3C pgrep-by-name check): processes are matched by NUMERIC uid for the ops identity AND every service identity. An absent account
+  // (getent exit 2) owns no processes, which still lets a truly fresh distro apply (the P1-S3C live finding); any other getent failure is refused, never read as "absent".
+  assert.match(t, /\n  require_no_identity_processes\n/, 'refuses to provision while ops or service processes run');
+  assert.match(t, /getent_exists passwd "\$u" \|\| continue/, 'the process check skips only an account that does not exist');
+  assert.match(t, /case "\$rc" in 0\) return 0 ;; 2\) return 1 ;; \*\) die "getent/, 'getent exit 2 means absent; every other failure is refused');
+  assert.ok(!/\bpgrep\b/.test(t.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n')), 'no name-keyed pgrep');
   assert.match(t, /= "\$AIHF_CODEX_SHA256" \] \|\| die/, 'the Codex binary is hash-pinned (and refused on mismatch) before it is executed as root');
   assert.match(t, /symbolic links or special files/, 'special files are refused in the release source');
   assert.match(t, /install_protected "\$AIHF_OPS_HOME"/, 'HOME protected surface is installed');
